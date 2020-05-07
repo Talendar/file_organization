@@ -5,10 +5,6 @@
 #include <string.h>
 #include <ctype.h>
 
-
-static void trim(char *str);
-
-
 /**
  * Cria um arquivo binário a partir de um arquivo csv.
  * 
@@ -82,14 +78,33 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
  */
 bool bin2txt(char *bin_pathname) 
 {
+    RegistroPessoa *rp = NULL;
+    RegistroCabecalho *cabecalho = NULL;
     FILE* bin = fopen(bin_pathname, "rb");
-    if(bin == NULL) 
-        return false;
+    
+    if((bin != NULL) && ((cabecalho = ler_cabecalho(bin)) != NULL)) {
+        if(existeRegistros(cabecalho)) {
+            while((rp = ler_registro_bin(bin)) != NULL) {
+                imprimir_registro_formatado(rp);
+                free(rp);
+                rp = NULL;
+            }
+            
+            free(cabecalho);
+            cabecalho = NULL;
 
-    //to_do: percorrer o arquivo e imprimir registros
+            fclose(bin);
+            return true;
+        } else {
+            printf("Registro inexistente.");
+            free(cabecalho);
+            cabecalho = NULL;
+        }
+    } else {
+        printf("Falha no processamento do arquivo.\n");
+    }
 
-    fclose(bin);
-    return true;
+    return false;
 }
 
 
@@ -133,7 +148,7 @@ void binarioNaTela(char *nomeArquivoBinario)
  *	printf("[%s]", minhaString); // vai imprimir "[TESTE  DE STRING COM BARRA R]"
  *
  */
-static void trim(char *str) {
+void trim(char *str) {
 	size_t len;
 	char *p;
 

@@ -24,8 +24,7 @@ int main(void)
     //funcionalidade 2
     else if(opt == 2) {
         scanf(" %s", bin_pathname);
-        if(!bin2txt(bin_pathname))
-            printf("Falha no processamento do arquivo.\n");
+        bin2txt(bin_pathname);
     }
     else
         printf("Opcao invalida!\n");

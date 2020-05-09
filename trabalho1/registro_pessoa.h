@@ -10,7 +10,7 @@
     void liberar_registro(RegistroPessoa **rp);
 
     RegistroCabecalho *ler_cabecalho_bin(FILE *bin);
-    RegistroCabecalho* criar_cabecalho();
+    RegistroCabecalho* criar_cabecalho(void);
     void escrever_cabecalho(RegistroCabecalho *c, FILE *bin);
     void atualizar_cabecalho(RegistroCabecalho *c, char status, int RRNproxRegistro, int numeroRegistrosInseridos, int numeroRegistrosAtualizados);
 

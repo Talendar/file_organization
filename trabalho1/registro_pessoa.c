@@ -142,7 +142,7 @@ static void fwrite_aux(char *campo, int n, FILE *bin)
  * 
  * @return um ponteiro para o novo cabeçalho.
  */
-RegistroCabecalho* criar_cabecalho() 
+RegistroCabecalho* criar_cabecalho(void) 
 {
     RegistroCabecalho *c = malloc(sizeof(RegistroCabecalho));
     if(c != NULL) {
@@ -334,6 +334,11 @@ void imprimir_registro_formatado(RegistroPessoa *rp) {
     printf(".\n");      // Imprime ".\n"
 }
 
+/**
+ * Apaga os campos variáveis alocados dinamicamente
+ * @param rp Ponteiro para o registro de dados
+ * @return
+ */
 void apagar_campos_variaveis(RegistroPessoa *rp) {
     if(rp != NULL) {
         free(rp->cidadeMae);

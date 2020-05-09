@@ -194,74 +194,29 @@ void atualizar_cabecalho(RegistroCabecalho *c, char status, int RRNproxRegistro,
 
 
 /**
- * TO DO.
+ * Lê o cabeçalho do arquivo binário
+ * @param bin Ponteiro do arquivo binário
+ * @return Ponteiro para o registro de cabeçalho
  */
 RegistroCabecalho *ler_cabecalho_bin(FILE *bin) {
-    RegistroCabecalho *novoCabecalho = (RegistroCabecalho *) malloc(sizeof(RegistroCabecalho));
+    RegistroCabecalho *novoCabecalho = (RegistroCabecalho *) malloc(sizeof(RegistroCabecalho)); // Aloca o registro
 
     if((bin != NULL) && (novoCabecalho != NULL)) {
-        if((fread(&novoCabecalho->status, 1, 1, bin) == 1) && (novoCabecalho->status == 1)) {
-            fread(&novoCabecalho->RRNproxRegistro, 4, 1, bin);
-            fread(&novoCabecalho->numeroRegistrosInseridos, 4, 1, bin);
-            fread(&novoCabecalho->numeroRegistrosRemovidos, 4, 1, bin);
-            fread(&novoCabecalho->numeroRegistrosAtualizados, 4, 1, bin);
-            fread(novoCabecalho->lixo, 1, 111, bin);
+        /* Checa se o cabeçalho existe e está consistente */
+        if((fread(&novoCabecalho->status, 1, 1, bin) == 1) && (novoCabecalho->status == '1')) { // Lê o campo status e verifica-o
+            fread(&novoCabecalho->RRNproxRegistro, 4, 1, bin);              // Lê o campo RRNproxRegistro
+            fread(&novoCabecalho->numeroRegistrosInseridos, 4, 1, bin);     // Lê o campo numeroRegistrosInseridos
+            fread(&novoCabecalho->numeroRegistrosRemovidos, 4, 1, bin);     // Lê o campo numeroRegistrosRemovidos
+            fread(&novoCabecalho->numeroRegistrosAtualizados, 4, 1, bin);   // Lê o campo numeroRegistrosAtualizados
+            fread(novoCabecalho->lixo, 1, 111, bin);                        // Lê o padding do cabeçalho
 
             return novoCabecalho;
         }
     }
 
-    return NULL;
-}
-
-
-/**
- * TO DO.
- */
-int existeRegistros(RegistroCabecalho *cabecalho) {
-    return ((cabecalho != NULL) && (cabecalho->numeroRegistrosInseridos > 0)) ? 1 : 0;
-}
-
-
-/**
- * TO DO.
- */
-RegistroPessoa *ler_registro_bin(FILE *bin) {
-    int sizeCidadeMae, sizeCidadeBebe;
-    char existeRegistro;
-    RegistroPessoa *rp = malloc(sizeof(RegistroPessoa));
-
-    if((bin != NULL) && (rp != NULL)) {
-        if((fread(&existeRegistro, 1, 1, bin) == 1) && (existeRegistro != '*')) {
-            fseek(bin, -1, SEEK_CUR);
-
-            fread(&sizeCidadeMae, 4, 1, bin);
-
-            fread(&sizeCidadeBebe, 4, 1, bin);
-            
-            fread(rp->cidadeMae, 1, sizeCidadeMae, bin);
-            rp->cidadeMae[sizeCidadeMae] = '\0';
-            
-            fread(rp->cidadeBebe, 1, sizeCidadeBebe, bin);
-            rp->cidadeBebe[sizeCidadeBebe] = '\0';
-
-            fread(&rp->idNascimento, 4, 1, bin);
-            
-            fread(&rp->idadeMae, 4, 1, bin);
-            
-            fread(rp->dataNascimento, 1, 10, bin);
-            rp->dataNascimento[10] = '\0';
-            
-            fread(&rp->sexoBebe, 1, 1, bin);
-            
-            fread(rp->estadoMae, 1, 2, bin);
-            rp->estadoMae[2] = '\0';
-            
-            fread(rp->estadoBebe, 1, 2, bin);
-            rp->estadoBebe[2] = '\0';
-        
-            return rp;
-        }
+    if(novoCabecalho != NULL) {
+        free(novoCabecalho);
+        novoCabecalho = NULL;
     }
 
     return NULL;
@@ -269,18 +224,99 @@ RegistroPessoa *ler_registro_bin(FILE *bin) {
 
 
 /**
- * TO DO.
+ * Checa se há registros inseridos com base no cabeçalho
+ * @param cabecalho Registro do cabeçalho
+ * @return Retorna 1 se verdadeiro ou 0 se falso
+ */
+int existe_registros(RegistroCabecalho *cabecalho) {
+    return ((cabecalho != NULL) && (cabecalho->numeroRegistrosInseridos > 0)) ? 1 : 0;
+}
+
+
+/**
+ * Lê um registro de dados do arquivo binário
+ * @param bin Ponteiro para o arquivo binário
+ * @return Ponteiro para o registro de dados lido
+ */
+RegistroPessoa *ler_registro_bin(FILE *bin) {
+    int sizeCidadeMae, sizeCidadeBebe;                      // Guarda os indicadores de tamanho dos campos variáveis
+    char existeRegistro;                                    // Buffer para testar se um registro está removido
+    RegistroPessoa *rp = malloc(sizeof(RegistroPessoa));    // Registro de dados
+    char lixoCampoVariavel[97];                             // Buffer para o espaço não utilizado dos campos variáveis
+
+    if((bin != NULL) && (rp != NULL)) {
+        /* Checa se o registro está removido */
+        if((fread(&existeRegistro, 1, 1, bin) == 1) && (existeRegistro != '*')) {
+            fseek(bin, -1, SEEK_CUR);   // Volta o byte lido para checagem
+
+            /* Lê o indicador de tamanho de cidadeMae */
+            fread(&sizeCidadeMae, 4, 1, bin);
+            rp->cidadeMae = (char *) malloc((sizeCidadeMae + 1) * sizeof(char));    // Aloca memória para o campo variável
+
+            /* Lê o indicador de tamanho de cidadeBebe */
+            fread(&sizeCidadeBebe, 4, 1, bin);
+            rp->cidadeBebe = (char *) malloc((sizeCidadeBebe + 1) * sizeof(char));  // Aloca memória para o campo variável
+
+            /* Lê o campo cidadeMae */
+            fread(rp->cidadeMae, 1, sizeCidadeMae, bin);
+            rp->cidadeMae[sizeCidadeMae] = '\0';
+
+            /* Lê o campo cidadeBebe */
+            fread(rp->cidadeBebe, 1, sizeCidadeBebe, bin);
+            rp->cidadeBebe[sizeCidadeBebe] = '\0';
+
+            /* Lê o resto do espaço do campo variável */
+            fread(lixoCampoVariavel, 1, (97 - (sizeCidadeMae + sizeCidadeBebe)), bin);
+            
+            /* Lê o campo idNascimento */
+            fread(&rp->idNascimento, 4, 1, bin);
+            
+            /* Lê o campo idadeMae */
+            fread(&rp->idadeMae, 4, 1, bin);
+            
+            /* Lê o campo dataNascimento */
+            fread(rp->dataNascimento, 1, 10, bin);
+            rp->dataNascimento[10] = '\0';
+            
+            /* Lê o campo sexoBebe */
+            fread(&rp->sexoBebe, 1, 1, bin);
+            
+            /* Lê o campo estadoMae */
+            fread(rp->estadoMae, 1, 2, bin);
+            rp->estadoMae[2] = '\0';
+            
+            /* Lê o campo estadoBebe */
+            fread(rp->estadoBebe, 1, 2, bin);
+            rp->estadoBebe[2] = '\0';
+
+            return rp;
+        }
+    }
+
+    if(rp != NULL) {
+        free(rp);
+        rp = NULL;
+    }
+
+    return NULL;
+}
+
+
+/**
+ * Imprime um registro de acordo com a formatação especificada na funcionalidade 2
+ * @param rp Ponteiro para o registro de dados
+ * @return
  */
 void imprimir_registro_formatado(RegistroPessoa *rp) {
-    printf("Nasceu em ");
-    imprimir_checar_vazio(rp->cidadeBebe);
-    printf("/");
-    imprimir_checar_vazio(rp->estadoBebe);
-    printf(", em ");
-    imprimir_checar_vazio(rp->dataNascimento);
-    printf(", um bebe de sexo ");
+    printf("Nasceu em ");                       // Imprime "Nasceu em "
+    imprimir_checar_vazio(rp->cidadeBebe);      // Imprime cidadeBebe ou "-"
+    printf("/");                                // Imprime "/"
+    imprimir_checar_vazio(rp->estadoBebe);      // Imprime estadoBebe ou "-"
+    printf(", em ");                            // Imprime ", em "
+    imprimir_checar_vazio(rp->dataNascimento);  // Imprime dataNascimento ou "-"
+    printf(", um bebê de sexo ");               // Imprime ", um bebê de sexo "
     
-    switch(rp->sexoBebe) {
+    switch(rp->sexoBebe) {                      // Imprime "IGNORADO" se 0 ou nulo, MASCULINO se 1, FEMININO se 2
     case '0':
         printf("IGNORADO");
         break;
@@ -295,18 +331,31 @@ void imprimir_registro_formatado(RegistroPessoa *rp) {
         break;
     }
 
-    printf(".\n");
+    printf(".\n");      // Imprime ".\n"
+}
+
+void apagar_campos_variaveis(RegistroPessoa *rp) {
+    if(rp != NULL) {
+        free(rp->cidadeMae);
+        rp->cidadeMae = NULL;
+        free(rp->cidadeBebe);
+        rp->cidadeBebe = NULL;
+    }
+
+    return;
 }
 
 
 /**
- * TO DO.
+ * Checa se um campo do tipo string está vazio e imprime de acordo com a funcionalidade 2
+ * @param campo String do campo
+ * @return
  */
 static void imprimir_checar_vazio(char *campo) {
-    if(strcmp(campo, ""))
-        printf("%s", campo);
-    else
-        printf("-");
+    if(strcmp(campo, ""))         // Se a string não for vazia
+        printf("%s", campo);      // Imprime o campo
+    else                          // Se a string for vazia
+        printf("-");              // Imprime "-"
 }
 
 

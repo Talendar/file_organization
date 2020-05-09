@@ -68,33 +68,37 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
  */
 bool bin2txt(char *bin_pathname) 
 {
-    RegistroPessoa *rp = NULL;
-    RegistroCabecalho *cabecalho = NULL;
-    FILE* bin = fopen(bin_pathname, "rb");
+    RegistroPessoa *rp = NULL;              // Registro de dados
+    RegistroCabecalho *cabecalho = NULL;    // Registro de cabeçalho
+    FILE* bin = fopen(bin_pathname, "rb");  // Arquivo binário
     
+    /* Checa se o arquivo e o cabeçalho existe e é consistente */
     if((bin != NULL) && ((cabecalho = ler_cabecalho_bin(bin)) != NULL)) {
-        if(existeRegistros(cabecalho)) {
-            while((rp = ler_registro_bin(bin)) != NULL) {
-                imprimir_registro_formatado(rp);
-                free(rp);
-                rp = NULL;
+        if(existe_registros(cabecalho)) {    // Checa se há registros de dados
+            while((rp = ler_registro_bin(bin)) != NULL) {   // Enquanto houver registros, lê o registro
+                imprimir_registro_formatado(rp);            // Imprime o registro no formato apropriado
+                apagar_campos_variaveis(rp);                // Apaga os campos variáveis alocados dinamicamente
+                liberar_registro(&rp);                      // Apaga da memória RAM o registro lido
             }
             
-            free(cabecalho);
-            cabecalho = NULL;
+            free(cabecalho);    // Apaga o cabeçalho da memória RAM
+            cabecalho = NULL;   // Restaura o ponteiro para NULL
 
-            fclose(bin);
-            return true;
+            fclose(bin);        // Fecha o arquivo
+            return true;        // Retorna com sucesso
         } else {
-            printf("Registro inexistente.");
-            free(cabecalho);
-            cabecalho = NULL;
+            printf("Registro inexistente.");    // Imprime mensagem de registro de dados inexistente
+            free(cabecalho);                    // Apaga o cabeçalho da memória ram
+            cabecalho = NULL;                   // Restaura o ponteiro para NULL
         }
     } else {
-        printf("Falha no processamento do arquivo.\n");
+        printf("Falha no processamento do arquivo.");   // Imprime mensagem de erro na leitura do arquivo
     }
 
-    return false;
+    if(bin != NULL)     // Se bin não é NULL, então o erro foi na leitura do cabeçalho ou dos registro de dados
+        fclose(bin);    // Portanto fechar o arquivo que ainda estará aberto
+
+    return false;   // Retorna com erros
 }
 
 

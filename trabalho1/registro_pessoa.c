@@ -6,31 +6,33 @@
 static void fwrite_aux(char *campo, int n, FILE *bin);
 static void imprimir_checar_vazio(char *campo);
 
+
 /**
- * Definição da estrutura do registro do cabeçalho
+ * Definição da estrutura do registro de cabeçalho.
  */
 struct Cabecalho {
-    char status;                    // Indica consistência do arquivo
-    int RRNproxRegistro;            // Indica RRN do próximo registro a ser inserido
-    int numeroRegistrosInseridos;   // Indica o número de registros inseridos
-    int numeroRegistrosRemovidos;   // Indica o número de registros removidos
-    int numeroRegistrosAtualizados; // Indica o número de registros atualizados
-    char lixo[111];                 // Padding
-}
+    char status;                        // Indica consistência do arquivo
+    int RRNproxRegistro;                // Indica RRN do próximo registro a ser inserido
+    int numeroRegistrosInseridos;       // Indica o número de registros inseridos
+    int numeroRegistrosRemovidos;       // Indica o número de registros removidos
+    int numeroRegistrosAtualizados;     // Indica o número de registros atualizados
+    char lixo[111 + 1];                 // Padding
+};
+
 
 /**
  * Definição da estrutura de um registro de uma pessoa, lido de um arquivo csv.
  */
 struct Dados {
      //TAMANHO VARIÁVEL
-    char cidadeMae[97+1],            //nome da cidade de residência da mãe
-         cidadeBebe[97+1];           //nome da cidade na qual o bebê nasceu
+    char *cidadeMae,                //nome da cidade de residência da mãe
+         *cidadeBebe;               //nome da cidade na qual o bebê nasceu
 
     //TAMANHO FIXO
-    int  idNascimento,          //código sequencial que identifica univocamente cada registro do arquivo de dados
-         idadeMae;              //idade da mãe do bebê
-    char dataNascimento[10+1],       //no formato AAAA-MM-DD
-         sexoBebe,             //pode assumir os valores ‘0’ (ignorado), ‘1’ (masculino) e ‘2’ (feminino)
+    int  idNascimento,              //código sequencial que identifica univocamente cada registro do arquivo de dados
+         idadeMae;                  //idade da mãe do bebê
+    char dataNascimento[10+1],      //no formato AAAA-MM-DD
+         sexoBebe,                  //pode assumir os valores ‘0’ (ignorado), ‘1’ (masculino) e ‘2’ (feminino)
          estadoMae[2+1],            //sigla do estado da cidade de residência da mãe)
          estadoBebe[2+1];           //sigla do estado da cidade na qual o bebê nasceu
 };
@@ -46,7 +48,6 @@ RegistroPessoa* ler_registro(char *line)
 {
     RegistroPessoa *rp = malloc(sizeof(RegistroPessoa));
     if(rp != NULL) {
-        //to_do: strdup?
         rp->cidadeMae = strsep(&line, ",");
         rp->cidadeBebe = strsep(&line, ",");
         rp->idNascimento = atoi(strsep(&line, ","));
@@ -55,14 +56,16 @@ RegistroPessoa* ler_registro(char *line)
         if(rp->idadeMae == 0)
             rp->idadeMae = -1;
 
-        rp->dataNascimento = strsep(&line, ",");
+        strcpy(rp->dataNascimento, strsep(&line, ","));
         
-        rp->sexoBebe = strsep(&line, ",");
-        if(strlen(rp->sexoBebe) == 0)
+        char *temp_sexobb = strsep(&line, ",");
+        if(strlen(temp_sexobb) == 0)
             rp->sexoBebe = '0';
+        else
+            rp->sexoBebe = temp_sexobb[0];
 
-        rp->estadoMae = strsep(&line, ",");
-        rp->estadoBebe = strsep(&line, ",");
+        strcpy(rp->estadoMae, strsep(&line, ","));
+        strcpy(rp->estadoBebe, strsep(&line, ","));
     }
 
     return rp;
@@ -76,15 +79,9 @@ RegistroPessoa* ler_registro(char *line)
  * @return
  */
 void liberar_registro(RegistroPessoa **rp) {
-    //to_do: "fix free(): invalid pointer"
-
-    /*free((*rp)->cidadeMae);
-    free((*rp)->cidadeBebe);
-    free((*rp)->dataNascimento);
-    free((*rp)->sexoBebe);
-    free((*rp)->estadoMae);
-    free((*rp)->estadoBebe);
-    (*rp) = NULL;*/
+    //a memória alocada pelos campos de tamanho variável de rp já foi liberada (peculiaridade do uso da função strsep)
+    free(*rp);
+    (*rp) = NULL;
 }
 
 
@@ -139,15 +136,75 @@ static void fwrite_aux(char *campo, int n, FILE *bin)
     }
 }
 
-RegistroCabecalho *ler_cabecalho(FILE *bin) {
+
+/**
+ * Cria um novo registro de cabeçalho para o arquivo.
+ * 
+ * @return um ponteiro para o novo cabeçalho.
+ */
+RegistroCabecalho* criar_cabecalho() 
+{
+    RegistroCabecalho *c = malloc(sizeof(RegistroCabecalho));
+    if(c != NULL) {
+        c->status = '0';
+        c->RRNproxRegistro = 0;
+        c->numeroRegistrosInseridos = 0;
+        c->numeroRegistrosAtualizados = 0;
+
+        for(int i = 0; i < sizeof(c->lixo) - 1; i++)
+            c->lixo[i] = '$';
+        c->lixo[sizeof(c->lixo) - 1] = '\0';
+    }
+
+    return c;
+}
+
+
+/**
+ * Escreve o cabeçalho no início do arquivo. Ao final do procedimento, o ponteiro de escrita do arquivo irá se encontrar na posição que se segue ao final do cabeçalho.
+ * 
+ * @param c ponteiro para o cabeçalho.
+ * @param bin ponteiro para o arquivo binário.
+ * @return
+ */
+void escrever_cabecalho(RegistroCabecalho *c, FILE *bin) 
+{
+    fseek(bin, 0, 0);                                            //move o ponteiro de escrita para o início do arquivo
+    fwrite(&c->status, 1, 1, bin);                               //status
+    fwrite(&c->RRNproxRegistro, 4, 1, bin);                      //próximo RRN
+    fwrite(&c->numeroRegistrosInseridos, 4, 1, bin);             //num registros inseridos
+    fwrite(&c->numeroRegistrosRemovidos, 4, 1, bin);             //num registros removidos
+    fwrite(&c->numeroRegistrosAtualizados, 4, 1, bin);           //num registros atualizados
+
+    for(int i = 0; i < strlen(c->lixo); i++)
+        fwrite(c->lixo + i, 1, 1, bin);                          //padding ($)
+}
+
+
+/**
+ * Atualiza todos os campos do registro de cabeçalho. As mudanças não são escritas em disco.
+ */
+void atualizar_cabecalho(RegistroCabecalho *c, char status, int RRNproxRegistro, int numeroRegistrosInseridos, int numeroRegistrosAtualizados) 
+{
+    c->status = status;
+    c->RRNproxRegistro = RRNproxRegistro;
+    c->numeroRegistrosInseridos = numeroRegistrosInseridos;
+    c->numeroRegistrosAtualizados = numeroRegistrosAtualizados;
+}
+
+
+/**
+ * TO DO.
+ */
+RegistroCabecalho *ler_cabecalho_bin(FILE *bin) {
     RegistroCabecalho *novoCabecalho = (RegistroCabecalho *) malloc(sizeof(RegistroCabecalho));
 
     if((bin != NULL) && (novoCabecalho != NULL)) {
-        if((fread(novoCabecalho->status, 1, 1, bin) == 1) && (novoCabecalho->status == 1)) {
-            fread(novoCabecalho->RRNproxRegistro, 4, 1, bin);
-            fread(novoCabecalho->numeroRegistrosInseridos, 4, 1, bin);
-            fread(novoCabecalho->numeroRegistrosRemovidos, 4, 1, bin);
-            fread(novoCabecalho->numeroRegistrosAtualizados, 4, 1, bin);
+        if((fread(&novoCabecalho->status, 1, 1, bin) == 1) && (novoCabecalho->status == 1)) {
+            fread(&novoCabecalho->RRNproxRegistro, 4, 1, bin);
+            fread(&novoCabecalho->numeroRegistrosInseridos, 4, 1, bin);
+            fread(&novoCabecalho->numeroRegistrosRemovidos, 4, 1, bin);
+            fread(&novoCabecalho->numeroRegistrosAtualizados, 4, 1, bin);
             fread(novoCabecalho->lixo, 1, 111, bin);
 
             return novoCabecalho;
@@ -157,14 +214,22 @@ RegistroCabecalho *ler_cabecalho(FILE *bin) {
     return NULL;
 }
 
+
+/**
+ * TO DO.
+ */
 int existeRegistros(RegistroCabecalho *cabecalho) {
     return ((cabecalho != NULL) && (cabecalho->numeroRegistrosInseridos > 0)) ? 1 : 0;
 }
 
+
+/**
+ * TO DO.
+ */
 RegistroPessoa *ler_registro_bin(FILE *bin) {
     int sizeCidadeMae, sizeCidadeBebe;
     char existeRegistro;
-    RegistroPessoa *rp = (RegistroPessoa *) malloc(sizeof(RegistroPessoa));
+    RegistroPessoa *rp = malloc(sizeof(RegistroPessoa));
 
     if((bin != NULL) && (rp != NULL)) {
         if((fread(&existeRegistro, 1, 1, bin) == 1) && (existeRegistro != '*')) {
@@ -202,7 +267,11 @@ RegistroPessoa *ler_registro_bin(FILE *bin) {
     return NULL;
 }
 
-int imprimir_registro_formatado(RegistroPessoa *rp) {
+
+/**
+ * TO DO.
+ */
+void imprimir_registro_formatado(RegistroPessoa *rp) {
     printf("Nasceu em ");
     imprimir_checar_vazio(rp->cidadeBebe);
     printf("/");
@@ -227,17 +296,19 @@ int imprimir_registro_formatado(RegistroPessoa *rp) {
     }
 
     printf(".\n");
-
-    return;
 }
 
+
+/**
+ * TO DO.
+ */
 static void imprimir_checar_vazio(char *campo) {
     if(strcmp(campo, ""))
         printf("%s", campo);
     else
         printf("-");
-    return;
 }
+
 
 /**
  * Imprime no STDOUT, de maneira formatada, as informações armazenadas em um registro. Função usada para testes.
@@ -246,6 +317,6 @@ static void imprimir_checar_vazio(char *campo) {
  * @return 
  */
 void imprimir_registro(RegistroPessoa *rp) {
-    printf("< %s | %s | %d | %d | %s | %s | %s | %s >\n", 
+    printf("< %s | %s | %d | %d | %s | %c | %s | %s >\n", 
         rp->cidadeMae, rp->cidadeBebe, rp->idNascimento, rp->idadeMae, rp->dataNascimento, rp->sexoBebe, rp->estadoMae, rp->estadoBebe);
 }

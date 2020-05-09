@@ -23,16 +23,8 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
     }
 
     //criando header
-    int zero = 0;  
-    fwrite(&zero, 1, 1, bin);                             //status
-    fwrite(&zero, 4, 1, bin);                             //próximo RRN
-    fwrite(&zero, 4, 1, bin);                             //num registros inseridos
-    fwrite(&zero, 4, 1, bin);                             //num registros removidos
-    fwrite(&zero, 4, 1, bin);                             //num registros atualizados
-    
-    char pad_char = '$';
-    for(int i = 0; i < 111; i++)
-        fwrite(&pad_char, 1, 1, bin);                     //padding ($)
+    RegistroCabecalho *cabecalho = criar_cabecalho();
+    escrever_cabecalho(cabecalho, bin);
 
     //lendo csv e escrevendo binário
     char *line;                                           //linha a ser lida
@@ -43,25 +35,23 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
     while(getline(&line, &len, csv) != -1) 
     {
         trim(line);                                       //removendo \n no final
+        char *line2free = strdup(line);                   //necessário para liberar a memória alocada, devido ao uso da função strsep
+
         RegistroPessoa *registro = ler_registro(line);
         if(registro == NULL)
             return false;
 
         registro2bin(registro, bin);                      //inserindo o registro no arquivo binário
         count++;
-        //printf("%ld\n", ftell(bin));
+
+        //liberando a memória alocada
+        free(line2free);
         liberar_registro(&registro);
     }
 
     //atualizando header
-    fseek(bin, 0, 0);
-    char one = '1';  fwrite(&one, 1, 1, bin);             //status = 1
-
-    fseek(bin, 1, 0);
-    fwrite(&count, 4, 1, bin);                            //campo rrn próximo
-
-    fseek(bin, 5, 0);                                     
-    fwrite(&count, 4, 1, bin);                            //campo número registros inseridos
+    atualizar_cabecalho(cabecalho, '1', count, count, 0);
+    escrever_cabecalho(cabecalho, bin);
 
     //finalizando
     fclose(csv);
@@ -82,7 +72,7 @@ bool bin2txt(char *bin_pathname)
     RegistroCabecalho *cabecalho = NULL;
     FILE* bin = fopen(bin_pathname, "rb");
     
-    if((bin != NULL) && ((cabecalho = ler_cabecalho(bin)) != NULL)) {
+    if((bin != NULL) && ((cabecalho = ler_cabecalho_bin(bin)) != NULL)) {
         if(existeRegistros(cabecalho)) {
             while((rp = ler_registro_bin(bin)) != NULL) {
                 imprimir_registro_formatado(rp);

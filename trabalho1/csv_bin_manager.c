@@ -14,7 +14,7 @@
  */
 bool csv_para_binario(char *csv_pathname, char *bin_pathname) 
 {   
-    FILE *csv, *bin;                                      //ponteiros para os arquivos csv e binário
+    FILE *csv = NULL, *bin = NULL;                        //ponteiros para os arquivos csv e binário
     if((csv = fopen(csv_pathname, "r")) == NULL)   
         return false;
     if((bin = fopen(bin_pathname, "wb")) == NULL) {
@@ -27,11 +27,13 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
     escrever_cabecalho(cabecalho, bin);
 
     //lendo csv e escrevendo binário
-    char *line;                                           //linha a ser lida
+    char *line = NULL;                                    //linha a ser lida
     size_t len = 0;                                       //tamanho da linha lida
     int count = 0;                                        //num registros lidos
     getline(&line, &len, csv);                            //consome a primeira linha (header)
-    
+    free(line);
+    line = NULL;
+
     while(getline(&line, &len, csv) != -1) 
     {
         trim(line);                                       //removendo \n no final
@@ -47,11 +49,17 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
         //liberando a memória alocada
         free(line2free);
         liberar_registro(&registro);
+        free(line);
+        line = NULL;
     }
+
+    free(line);
+    line = NULL;
 
     //atualizando header
     atualizar_cabecalho(cabecalho, '1', count, count, 0);
     escrever_cabecalho(cabecalho, bin);
+    free(cabecalho);
 
     //finalizando
     fclose(csv);

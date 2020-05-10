@@ -150,10 +150,11 @@ RegistroCabecalho* criar_cabecalho(void)
         c->RRNproxRegistro = 0;
         c->numeroRegistrosInseridos = 0;
         c->numeroRegistrosAtualizados = 0;
+        c->numeroRegistrosRemovidos = 0;
 
-        for(int i = 0; i < sizeof(c->lixo) - 1; i++)
+        for(int i = 0; i < 111; i++)
             c->lixo[i] = '$';
-        c->lixo[sizeof(c->lixo) - 1] = '\0';
+        c->lixo[111] = '\0';
     }
 
     return c;
@@ -169,15 +170,13 @@ RegistroCabecalho* criar_cabecalho(void)
  */
 void escrever_cabecalho(RegistroCabecalho *c, FILE *bin) 
 {
-    fseek(bin, 0, 0);                                            //move o ponteiro de escrita para o início do arquivo
+    fseek(bin, 0, SEEK_SET);                                     //move o ponteiro de escrita para o início do arquivo
     fwrite(&c->status, 1, 1, bin);                               //status
     fwrite(&c->RRNproxRegistro, 4, 1, bin);                      //próximo RRN
     fwrite(&c->numeroRegistrosInseridos, 4, 1, bin);             //num registros inseridos
     fwrite(&c->numeroRegistrosRemovidos, 4, 1, bin);             //num registros removidos
     fwrite(&c->numeroRegistrosAtualizados, 4, 1, bin);           //num registros atualizados
-
-    for(int i = 0; i < strlen(c->lixo); i++)
-        fwrite(c->lixo + i, 1, 1, bin);                          //padding ($)
+    fwrite(c->lixo, 1, 111, bin);                                //padding ($)
 }
 
 
@@ -209,6 +208,7 @@ RegistroCabecalho *ler_cabecalho_bin(FILE *bin) {
             fread(&novoCabecalho->numeroRegistrosRemovidos, 4, 1, bin);     // Lê o campo numeroRegistrosRemovidos
             fread(&novoCabecalho->numeroRegistrosAtualizados, 4, 1, bin);   // Lê o campo numeroRegistrosAtualizados
             fread(novoCabecalho->lixo, 1, 111, bin);                        // Lê o padding do cabeçalho
+            novoCabecalho->lixo[111] = '\0';
 
             return novoCabecalho;
         }

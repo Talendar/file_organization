@@ -1,12 +1,14 @@
+/**
+ * Contém as funcionalidades principais do programa.
+ */
+
 #include "csv_bin_manager.h"
 #include "registro_pessoa.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-
-static void trim(char *str);
+#include <stdbool.h>
 
 
 /**
@@ -27,16 +29,8 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
     }
 
     //criando header
-    int zero = 0;  
-    fwrite(&zero, 1, 1, bin);                             //status
-    fwrite(&zero, 4, 1, bin);                             //próximo RRN
-    fwrite(&zero, 4, 1, bin);                             //num registros inseridos
-    fwrite(&zero, 4, 1, bin);                             //num registros removidos
-    fwrite(&zero, 4, 1, bin);                             //num registros atualizados
-    
-    char pad_char = '$';
-    for(int i = 0; i < 111; i++)
-        fwrite(&pad_char, 1, 1, bin);                     //padding ($)
+    RegistroCabecalho *cabecalho = criar_cabecalho();
+    escrever_cabecalho(cabecalho, bin);
 
     //lendo csv e escrevendo binário
     char *line;                                           //linha a ser lida
@@ -47,25 +41,24 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
     while(getline(&line, &len, csv) != -1) 
     {
         trim(line);                                       //removendo \n no final
+        char *line2free = strdup(line);                   //necessário para liberar a memória alocada, devido ao uso da função strsep
+
         RegistroPessoa *registro = ler_registro(line);
         if(registro == NULL)
             return false;
 
         registro2bin(registro, bin);                      //inserindo o registro no arquivo binário
         count++;
-        //printf("%ld\n", ftell(bin));
-        liberar_registro(&registro);
+
+        //liberando a memória alocada
+        free(line2free);
+        liberar_registro(&registro, false);
     }
 
     //atualizando header
-    fseek(bin, 0, 0);
-    char one = '1';  fwrite(&one, 1, 1, bin);             //status = 1
-
-    fseek(bin, 1, 0);
-    fwrite(&count, 4, 1, bin);                            //campo rrn próximo
-
-    fseek(bin, 5, 0);                                     
-    fwrite(&count, 4, 1, bin);                            //campo número registros inseridos
+    atualizar_cabecalho(cabecalho, '1', count, count, 0);
+    escrever_cabecalho(cabecalho, bin);
+    liberar_cabecalho(&cabecalho);
 
     //finalizando
     fclose(csv);
@@ -82,14 +75,36 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
  */
 bool bin2txt(char *bin_pathname) 
 {
-    FILE* bin = fopen(bin_pathname, "rb");
-    if(bin == NULL) 
-        return false;
+    RegistroPessoa *rp = NULL;              // Registro de dados
+    RegistroCabecalho *cabecalho = NULL;    // Registro de cabeçalho
+    FILE* bin = fopen(bin_pathname, "rb");  // Arquivo binário
+    
+    /* Checa se o arquivo e o cabeçalho existe e é consistente */
+    if((bin != NULL) && ((cabecalho = ler_cabecalho_bin(bin)) != NULL)) {
+        if(existe_registros(cabecalho)) {                   // Checa se há registros de dados
+            while((rp = ler_registro_bin(bin)) != NULL) {   // Enquanto houver registros, lê o registro
+                imprimir_registro(rp);                      // Imprime o registro no formato apropriado
+                liberar_registro(&rp, true);                // Apaga da memória RAM o registro lido
+            }
+            
+            free(cabecalho);    // Apaga o cabeçalho da memória RAM
+            cabecalho = NULL;   // Restaura o ponteiro para NULL
 
-    //to_do: percorrer o arquivo e imprimir registros
+            fclose(bin);        // Fecha o arquivo
+            return true;        // Retorna com sucesso
+        } else {
+            printf("Registro inexistente.");    // Imprime mensagem de registro de dados inexistente
+            free(cabecalho);                    // Apaga o cabeçalho da memória ram
+            cabecalho = NULL;                   // Restaura o ponteiro para NULL
+        }
+    } else {
+        printf("Falha no processamento do arquivo.");   // Imprime mensagem de erro na leitura do arquivo
+    }
 
-    fclose(bin);
-    return true;
+    if(bin != NULL)     // Se bin não é NULL, então o erro foi na leitura do cabeçalho ou dos registro de dados
+        fclose(bin);    // Portanto fechar o arquivo que ainda estará aberto
+
+    return false;       // Retorna com erros
 }
 
 
@@ -133,7 +148,7 @@ void binarioNaTela(char *nomeArquivoBinario)
  *	printf("[%s]", minhaString); // vai imprimir "[TESTE  DE STRING COM BARRA R]"
  *
  */
-static void trim(char *str) {
+void trim(char *str) {
 	size_t len;
 	char *p;
 

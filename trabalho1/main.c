@@ -3,7 +3,7 @@
  * Trabalho 1 de Organização de Arquivos
  * 
  * Gabriel Nogueira
- * Lucas Yamamoto 
+ * Lucas Yamamoto
  */
 
 #include <stdio.h>
@@ -11,23 +11,24 @@
 
 int main(void) 
 {   
-    int opt = -1; scanf(" %d", &opt);
-    char bin_pathname[64];
+    int opt = -1; scanf(" %d", &opt);   // Buffer de entrada do menu
+    char bin_pathname[64];              // Nome do arquivo binário
 
+    /* Executa a operação do menu */
     //funcionalidade 1
     if(opt == 1) {
-        char csv_pathname[64];
-        scanf(" %s %s", csv_pathname, bin_pathname);
-        csv_para_binario(csv_pathname, bin_pathname);
-        binarioNaTela(bin_pathname);
+        char csv_pathname[64];          // Nome do arquivo csv
+        scanf(" %s %s", csv_pathname, bin_pathname);    // Lê o nome dos arquivos binário e csv
+        csv_para_binario(csv_pathname, bin_pathname);   // Executa a funcionalidade
+        binarioNaTela(bin_pathname);                    // Imprime na tela
     }
     //funcionalidade 2
     else if(opt == 2) {
-        scanf(" %s", bin_pathname);
-        bin2txt(bin_pathname);
+        scanf(" %s", bin_pathname);     // Lê o nome do arquivo binário
+        bin2txt(bin_pathname);          // Executa a funcionalidade
     }
     else
-        printf("Opcao invalida!\n");
+        printf("Opcao invalida!\n");    // Mensagem de erro
 
     return 0;
 }

@@ -94,15 +94,17 @@ void liberar_registro(RegistroPessoa **rp) {
  */
 void registro2bin(RegistroPessoa *rp, FILE *bin) 
 {
-    int sizeCidadeMae = strlen(rp->cidadeMae), sizeCidadeBebe = strlen(rp->cidadeBebe);
+    /* Escreve cada campo para o binário */
+    int sizeCidadeMae = strlen(rp->cidadeMae), sizeCidadeBebe = strlen(rp->cidadeBebe); // Indicadores de tamanho
     fwrite(&sizeCidadeMae, 4, 1, bin);   //tamanho cidade mae
     fwrite(&sizeCidadeBebe, 4, 1, bin);  //tamanho cidade bebe
 
     fwrite(rp->cidadeMae, 1, strlen(rp->cidadeMae), bin);
     fwrite(rp->cidadeBebe, 1, strlen(rp->cidadeBebe), bin);
 
-    int pad = 105 - (8 + strlen(rp->cidadeMae) + strlen(rp->cidadeBebe));
-    char pad_char = '$';
+    /* Escreve os campos de tamanho variável com padding */
+    int pad = 105 - (8 + strlen(rp->cidadeMae) + strlen(rp->cidadeBebe));   // Tamanho do padding
+    char pad_char = '$';    // Byte do padding
     for(int i = 0; i < pad; i++)
         fwrite(&pad_char, 1, 1, bin);    //adicionando padding ($)
 
@@ -126,13 +128,14 @@ void registro2bin(RegistroPessoa *rp, FILE *bin)
  */
 static void fwrite_aux(char *campo, int n, FILE *bin) 
 {
-    if(strlen(campo) != 0) 
-        fwrite(campo, 1, n, bin);
+    /* Trata o caso do campo vazio de acordo com as especificações */
+    if(strlen(campo) != 0)          // Se não é vazio
+        fwrite(campo, 1, n, bin);   // Escreve normalmente
     else {
-        char null_char = '\0', pad_char = '$';
-        fwrite(&null_char, 1, 1, bin);
+        char null_char = '\0', pad_char = '$';  // Bytes de preenchimento
+        fwrite(&null_char, 1, 1, bin);          // Coloca o '\0' conforme a especificação
         for(int i = 1; i < n; i++) 
-            fwrite(&pad_char, 1, 1, bin);
+            fwrite(&pad_char, 1, 1, bin);       // Preenche com '$' conforme a especificação
     }
 }
 
@@ -144,17 +147,20 @@ static void fwrite_aux(char *campo, int n, FILE *bin)
  */
 RegistroCabecalho* criar_cabecalho(void) 
 {
-    RegistroCabecalho *c = malloc(sizeof(RegistroCabecalho));
+    /* Cria o cabeçalho inicializado para um binário novo */
+    RegistroCabecalho *c = malloc(sizeof(RegistroCabecalho));   // Cria o cabeçalho
     if(c != NULL) {
+        /* Inicializa os campos */
         c->status = '0';
         c->RRNproxRegistro = 0;
         c->numeroRegistrosInseridos = 0;
         c->numeroRegistrosAtualizados = 0;
         c->numeroRegistrosRemovidos = 0;
 
+        /* Preenche com '$' o lixo */
         for(int i = 0; i < 111; i++)
             c->lixo[i] = '$';
-        c->lixo[111] = '\0';
+        c->lixo[111] = '\0';    // Coloca o '\0' no fim para usar como string
     }
 
     return c;
@@ -170,6 +176,7 @@ RegistroCabecalho* criar_cabecalho(void)
  */
 void escrever_cabecalho(RegistroCabecalho *c, FILE *bin) 
 {
+    /* Volta ao começo do arquivo binário e escreve o cabeçalho */
     fseek(bin, 0, SEEK_SET);                                     //move o ponteiro de escrita para o início do arquivo
     fwrite(&c->status, 1, 1, bin);                               //status
     fwrite(&c->RRNproxRegistro, 4, 1, bin);                      //próximo RRN
@@ -185,6 +192,7 @@ void escrever_cabecalho(RegistroCabecalho *c, FILE *bin)
  */
 void atualizar_cabecalho(RegistroCabecalho *c, char status, int RRNproxRegistro, int numeroRegistrosInseridos, int numeroRegistrosAtualizados) 
 {
+    /* Atualiza valores do cabeçalho */
     c->status = status;
     c->RRNproxRegistro = RRNproxRegistro;
     c->numeroRegistrosInseridos = numeroRegistrosInseridos;
@@ -214,6 +222,7 @@ RegistroCabecalho *ler_cabecalho_bin(FILE *bin) {
         }
     }
 
+    /* Apaga o cabeçalho alocado no caso do ponteiro de arquivo seja nulo */
     if(novoCabecalho != NULL) {
         free(novoCabecalho);
         novoCabecalho = NULL;
@@ -239,18 +248,13 @@ int existe_registros(RegistroCabecalho *cabecalho) {
  * @return Ponteiro para o registro de dados lido
  */
 RegistroPessoa *ler_registro_bin(FILE *bin) {
-    int sizeCidadeMae, sizeCidadeBebe;                      // Guarda os indicadores de tamanho dos campos variáveis
-    char existeRegistro;                                    // Buffer para testar se um registro está removido
-    RegistroPessoa *rp = malloc(sizeof(RegistroPessoa));    // Registro de dados
-    char lixoCampoVariavel[97];                             // Buffer para o espaço não utilizado dos campos variáveis
-
+    int sizeCidadeMae, sizeCidadeBebe;                                          // Guarda os indicadores de tamanho dos campos variáveis
+    RegistroPessoa *rp = (RegistroPessoa *) malloc(sizeof(RegistroPessoa));     // Registro de dados
+    char lixoCampoVariavel[97];                                                 // Buffer para o espaço não utilizado dos campos variáveis
+    
     if((bin != NULL) && (rp != NULL)) {
-        /* Checa se o registro está removido */
-        if((fread(&existeRegistro, 1, 1, bin) == 1) && (existeRegistro != '*')) {
-            fseek(bin, -1, SEEK_CUR);   // Volta o byte lido para checagem
-
-            /* Lê o indicador de tamanho de cidadeMae */
-            fread(&sizeCidadeMae, 4, 1, bin);
+        /* Lê o indicador de tamanho de cidadeMae testando se o registro existe*/
+        if((fread(&sizeCidadeMae, 4, 1, bin) == 1) && (sizeCidadeMae != -1)) {
             rp->cidadeMae = (char *) malloc((sizeCidadeMae + 1) * sizeof(char));    // Aloca memória para o campo variável
 
             /* Lê o indicador de tamanho de cidadeBebe */
@@ -293,6 +297,7 @@ RegistroPessoa *ler_registro_bin(FILE *bin) {
         }
     }
 
+    /* Apaga o registro alocado no caso do ponteiro de arquivo seja nulo */
     if(rp != NULL) {
         free(rp);
         rp = NULL;
@@ -341,8 +346,10 @@ void imprimir_registro_formatado(RegistroPessoa *rp) {
  */
 void apagar_campos_variaveis(RegistroPessoa *rp) {
     if(rp != NULL) {
+        /* Apaga o campo cidadeMae */
         free(rp->cidadeMae);
         rp->cidadeMae = NULL;
+        /* Apaga o campo cidadeBebe */
         free(rp->cidadeBebe);
         rp->cidadeBebe = NULL;
     }

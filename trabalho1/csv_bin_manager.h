@@ -1,7 +1,3 @@
-/**
- * Contém as funcionalidades principais do programa.
- */
-
 #ifndef CSV_BIN_MANAGER_H
     #define CSV_BIN_MANAGER_H
     #include <stdbool.h>

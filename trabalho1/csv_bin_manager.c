@@ -1,15 +1,9 @@
-/**
- * Contém as funcionalidades principais do programa.
- */
-
 #include "csv_bin_manager.h"
 #include "registro_pessoa.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdbool.h>
-
 
 /**
  * Cria um arquivo binário a partir de um arquivo csv.
@@ -20,7 +14,7 @@
  */
 bool csv_para_binario(char *csv_pathname, char *bin_pathname) 
 {   
-    FILE *csv, *bin;                                      //ponteiros para os arquivos csv e binário
+    FILE *csv = NULL, *bin = NULL;                        //ponteiros para os arquivos csv e binário
     if((csv = fopen(csv_pathname, "r")) == NULL)   
         return false;
     if((bin = fopen(bin_pathname, "wb")) == NULL) {
@@ -33,19 +27,21 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
     escrever_cabecalho(cabecalho, bin);
 
     //lendo csv e escrevendo binário
-    char *line;                                           //linha a ser lida
+    char *line = NULL;                                    //linha a ser lida
     size_t len = 0;                                       //tamanho da linha lida
     int count = 0;                                        //num registros lidos
-    getline(&line, &len, csv);                            //consome a primeira linha (header)
     
-    while(getline(&line, &len, csv) != -1) 
+    getline(&line, &len, csv);                            //consome a primeira linha (header)
+    free(line);  line = NULL;
+
+    while(getline(&line, &len, csv) != -1)                //a função getline retorna -1 no EOF
     {
         trim(line);                                       //removendo \n no final
         char *line2free = strdup(line);                   //necessário para liberar a memória alocada, devido ao uso da função strsep
 
-        RegistroPessoa *registro = ler_registro(line);
+        RegistroPessoa *registro = ler_registro_csv(line);
         if(registro == NULL)
-            return false;
+            return false;                                 //retorna false caso não tenha sido possível ler o registro
 
         registro2bin(registro, bin);                      //inserindo o registro no arquivo binário
         count++;
@@ -53,12 +49,16 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
         //liberando a memória alocada
         free(line2free);
         liberar_registro(&registro, false);
+        free(line);  line = NULL;
     }
+
+    free(line);
+    line = NULL;
 
     //atualizando header
     atualizar_cabecalho(cabecalho, '1', count, count, 0);
     escrever_cabecalho(cabecalho, bin);
-    liberar_cabecalho(&cabecalho);
+    free(cabecalho);
 
     //finalizando
     fclose(csv);
@@ -77,13 +77,13 @@ bool bin2txt(char *bin_pathname)
 {
     RegistroPessoa *rp = NULL;              // Registro de dados
     RegistroCabecalho *cabecalho = NULL;    // Registro de cabeçalho
-    FILE* bin = fopen(bin_pathname, "rb");  // Arquivo binário
+    FILE *bin = fopen(bin_pathname, "rb");  // Arquivo binário
     
     /* Checa se o arquivo e o cabeçalho existe e é consistente */
     if((bin != NULL) && ((cabecalho = ler_cabecalho_bin(bin)) != NULL)) {
         if(existe_registros(cabecalho)) {                   // Checa se há registros de dados
             while((rp = ler_registro_bin(bin)) != NULL) {   // Enquanto houver registros, lê o registro
-                imprimir_registro(rp);                      // Imprime o registro no formato apropriado
+                imprimir_registro_formatado(rp);            // Imprime o registro no formato apropriado
                 liberar_registro(&rp, true);                // Apaga da memória RAM o registro lido
             }
             

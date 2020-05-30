@@ -1,0 +1,14 @@
+# Test cases
+*.in
+*.out
+*.bin
+*.csv
+
+# Object files
+*.o
+
+# ZIP Releases
+*.zip
+
+# Executable
+programaTrab

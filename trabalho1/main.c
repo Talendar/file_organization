@@ -1,14 +1,19 @@
 /*
  * ICMC - Universidade de São Paulo (USP)
- * Trabalho 1 de Organização de Arquivos
+ * Trabalho 2 de Organização de Arquivos
  * 
  * Gabriel Nogueira
  * Lucas Yamamoto
  */
 
-#include <stdio.h>
-#include "csv_bin_manager.h"
 
+#include <stdio.h>
+#include "funcionalidades.h"
+
+
+/**
+ * Função principal. Chamda automaticamente quando o programa é iniciado.
+ */
 int main(void) 
 {   
     int opt = -1; scanf(" %d", &opt);   // Buffer de entrada do menu
@@ -16,20 +21,37 @@ int main(void)
 
     //funcionalidade 1
     if(opt == 1) {
-        char csv_pathname[64];                              // Nome do arquivo csv
+        char csv_pathname[64];                              
         scanf(" %s %s", csv_pathname, bin_pathname);        // Lê o nome dos arquivos binário e csv
-        if(csv_para_binario(csv_pathname, bin_pathname))    // Executa a funcionalidade e checa se o ela ocorreu conforme esperado
-            binarioNaTela(bin_pathname);                    // Imprime na tela
+        func1(csv_pathname, bin_pathname);                  // Executa a funcionalidade 1
+    }
+    //outras funcionalidades
+    else {
+        scanf(" %s", bin_pathname);                         // Lê o nome do arquivo binário
+        FILE *bin = fopen(bin_pathname, "rb+");             // Abre o arquivo binário
+        
+        if(bin != NULL) {
+            if(opt == 2) 
+                func2(bin);                                 // Executa a funcionalidade 2
+            else if(opt == 3)
+                func3(bin);                                 // Executa a funcionalidade 3
+            else if(opt == 4)
+                func4(bin);                                 // Executa a funcionalidade 4
+            else if(opt == 5) {
+                func5(bin_pathname, bin);                   // Executa a funcionalidade 5
+                bin = NULL;                                 // Necessário para que não se tente fechar o arquivo novamente (ele já foi fechado na func5)
+            }
+            else if(opt == 6)
+                func6(bin);                                 // Executa a funcionalidade 6
+            else if(opt == 7)
+                func7(bin);                                 // Executa a funcionalidade 7
+            
+            if(bin != NULL)
+                fclose(bin);
+        }
         else 
-            printf("Falha no carregamento do arquivo.\n");
+            printf("Falha no processamento do arquivo.");   // Erro: arquivo não encontrado
     }
-    //funcionalidade 2
-    else if(opt == 2) {
-        scanf(" %s", bin_pathname);     // Lê o nome do arquivo binário
-        bin2txt(bin_pathname);          // Executa a funcionalidade
-    }
-    else
-        printf("Opcao invalida!\n");    // Mensagem de erro
 
     return 0;
 }

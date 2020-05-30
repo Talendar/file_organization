@@ -73,6 +73,149 @@ RegistroPessoa* ler_registro_csv(char *line)
 
 
 /**
+ * Cria um novo registro a partir dos dados especificados. O novo registro estará apenas na RAM, de forma que uma outra rotina será necessária caso se queira armazená-lo em um arquivo de disco. O nome dos parâmetros é auto-explicativo e refere-se aos respectivos campos do novo registro.
+ * 
+ * @param cidadeMae
+ * @param cidadeBebe
+ * @param idNascimento
+ * @param idadeMae
+ * @param dataNascimento
+ * @param sexoBebe
+ * @param estadoMae
+ * @param estadoBebe
+ * @return um ponteiro para o novo registro; retorna NULL caso haja falha na alocação dinâmica de memória.
+ */
+RegistroPessoa* criar_registro(char *cidadeMae, char *cidadeBebe, int idNascimento, int idadeMae, 
+                                char dataNascimento[11], char sexoBebe[3], char estadoMae[3], char estadoBebe[3])
+{
+    RegistroPessoa *rp = malloc(sizeof(RegistroPessoa));
+    if(rp != NULL) {
+        //campos de tamanho variável
+        rp->cidadeMae = malloc(strlen(cidadeMae) + 1);
+        strcpy(rp->cidadeMae, cidadeMae);
+        rp->cidadeBebe = malloc(strlen(cidadeBebe) + 1);
+        strcpy(rp->cidadeBebe, cidadeBebe);
+
+
+        //campos de tamanho fixo
+        rp->idNascimento = idNascimento;
+        rp->idadeMae = idadeMae;
+        rp->sexoBebe = (!strcmp(sexoBebe, "-1")) ? -1 : sexoBebe[0];
+
+        strcpy(rp->dataNascimento, dataNascimento);
+        strcpy(rp->estadoMae, estadoMae);
+        strcpy(rp->estadoBebe, estadoBebe);
+    }
+
+    //imprimir_registro_teste(rp);
+    return rp;
+}
+
+
+/**
+ * Verifica se um dado registro candidato apresenta valores semelhantes, em um ou mais campos, a um registro modelo (pseudo-registro).
+ * 
+ * @param modelo pseudo-registro que servirá como modelo para a comparação; campos que não serão comparados devem possuir um valor default pré-definido (-1).
+ * @param candidato registro que deseja-se comparar.
+ * @return true caso o candidato tenha valores similares ao modelo ou false caso o contrário.
+ */
+bool registros_similares(RegistroPessoa *modelo, RegistroPessoa *candidato)
+{
+    if(
+        (strcmp(modelo->cidadeMae, "-1") != 0 && strcmp(modelo->cidadeMae, candidato->cidadeMae) != 0) ||                           //checa cidadeMae
+        (strcmp(modelo->cidadeBebe, "-1") != 0 && strcmp(modelo->cidadeBebe, candidato->cidadeBebe) != 0) ||                        //checa cidadeBebe
+        (strcmp(modelo->dataNascimento, "-1") != 0 && strcmp(modelo->dataNascimento, candidato->dataNascimento) != 0) ||            //checa dataNascimento
+        (strcmp(modelo->estadoMae, "-1") != 0 && strcmp(modelo->estadoMae, candidato->estadoMae) != 0) ||                           //checa estadoMae
+        (strcmp(modelo->estadoBebe, "-1") != 0 && strcmp(modelo->estadoBebe, candidato->estadoBebe) != 0) ||                        //checa estadoBebe
+        (modelo->idNascimento != -1 && modelo->idNascimento != candidato->idNascimento) ||                                          //checa idNascimento
+        (modelo->idadeMae != -1 && modelo->idadeMae != candidato->idadeMae) ||                                                      //checa idadeMae
+        (modelo->sexoBebe != -1 && modelo->sexoBebe != candidato->sexoBebe)                                                         //checa sexoBebe
+    )
+        return false;
+
+    return true;
+}
+
+
+/**
+ * Remove logicamente o registro cujo fim é apontado pelo ponteiro do arquivo. Ao final da execução, o ponteiro do arquivo apontará para a posição final do registro logicamente removido. O registro de cabeçalho do arquivo não é atualizado.
+ * 
+ * @param bin arquivo binário já aberto (com permissão de escrita) e com ponteiro de posição apontando para o fim do registro a ser removido.
+ * @return
+ */
+void remover_registro(FILE *bin) {
+    const long int POS_INICIAL = ftell(bin);
+    fseek(bin, POS_INICIAL - 128, SEEK_SET);    //recua o ponteiro do arquivo para o começo do registro
+
+    int b = -1;  fwrite(&b, 4, 1, bin);         //marca o registro como logicamente removido  
+    fseek(bin, POS_INICIAL, SEEK_SET);          //avança o ponteiro do arquivo para o final do registro logicamente removido
+}
+
+
+/**
+ * Wrapper para a função "remover_registro". O parâmetro "rp" é ignorado.
+ */
+void remover_registro_aux(FILE *bin, RegistroPessoa *rp) {
+    remover_registro(bin);
+}
+
+
+/**
+ * Busca por registros com valores similares, em um ou mais campos, aos de um pseudo-registro modelo. Executa a função passada como parâmetro em cada um dos registros encontrados.
+ * 
+ * @param bin arquivo binário utilizado para a busca; o ponteiro do arquivo deve estar apontando para o início do primeiro registro.
+ * @param modelo registro que servirá como modelo para a busca; campos que não serão considerados na busca devem possuir um valor default pré-definido (-1).
+ * @param func ponteiro para a função que será executada nos registros encontrados.
+ * @return a quantidade de registros encontrados.
+ */
+int buscar_registros(FILE *bin, RegistroPessoa *modelo, void (*func)(FILE *bin, RegistroPessoa *rp)) 
+{   
+    int count = 0;
+    RegistroPessoa *rp = NULL;
+
+     do {
+        if(rp != NULL)
+            liberar_registro(&rp, true);                //apaga da RAM o último registro lido
+
+        //pula a leitura de registros logicamente removidos
+        while(verificar_removido(bin)) 
+            pular_registro(bin);
+
+        //lê o próximo registro, verifica se EOF e imprime o registro
+        if((rp = ler_registro_bin(bin)) != NULL) {
+            if(registros_similares(modelo, rp)) {       //verifica se o registro satisfaz os critérios de busca
+                func(bin, rp);                          //executa a função passada como argumento
+                count++;
+            }
+        }
+    } while(!fim_do_arquivo(bin));
+
+    return count;     //retorna a quantidade de registros encontrados
+}
+
+
+/**
+ * Busca, em um arquivo, pelo registro no RRN especificado.
+ * 
+ * @param rrn RRN (relative record number) do registro que se deseja resgatar.
+ * @param bin arquivo binário no qual será realizada a busca.
+ * @return o registro, caso encontrado, ou NULL caso ele tenha sido removido ou o rrn for inválido.
+ */
+RegistroPessoa* registro_em(int rrn, FILE *bin) {
+    fseek(bin, 0, SEEK_END);
+    const int MAX = ftell(bin);
+
+    int offset = (rrn + 1) * 128;                                          //calcula o offset do registro
+    fseek(bin, offset, SEEK_SET);                                          //move o ponteiro do arquivo para o offset equivalente ao rrn especificado
+
+    if(offset < 128 || offset > (MAX - 128) || verificar_removido(bin))    //verifica se o offset é valido e se o registro não foi removido
+        return NULL;
+
+    return ler_registro_bin(bin);                                          //lê e retorna o registro no offset
+}
+
+
+/**
  * Libera a memória alocada pelo registro.
  * 
  * @param rp ponteiro para um ponteiro para o registro a ser liberado; ao final do procedimento, o ponteiro para o registro terá valor NULL.
@@ -192,15 +335,16 @@ void escrever_cabecalho(RegistroCabecalho *c, FILE *bin)
 
 
 /**
- * Atualiza todos os campos do registro de cabeçalho. As mudanças não são escritas em disco.
+ * Atualiza todos os campos do registro de cabeçalho. As mudanças não são escritas em disco. Campos que devem manter o seu valor devem receber o valor -1 no argumento.
  */
-void atualizar_cabecalho(RegistroCabecalho *c, char status, int RRNproxRegistro, int numeroRegistrosInseridos, int numeroRegistrosAtualizados) 
+void atualizar_cabecalho(RegistroCabecalho *c, char status, int RRNproxRegistro, int numeroRegistrosInseridos, int numeroRegistrosRemovidos, int numeroRegistrosAtualizados) 
 {
     /* Atualiza valores do cabeçalho */
-    c->status = status;
-    c->RRNproxRegistro = RRNproxRegistro;
-    c->numeroRegistrosInseridos = numeroRegistrosInseridos;
-    c->numeroRegistrosAtualizados = numeroRegistrosAtualizados;
+    c->status = (status == -1) ? c->status : status;
+    c->RRNproxRegistro = (RRNproxRegistro == -1) ? c->RRNproxRegistro : RRNproxRegistro;
+    c->numeroRegistrosInseridos = (numeroRegistrosInseridos == -1) ? c->numeroRegistrosInseridos : numeroRegistrosInseridos;
+    c->numeroRegistrosRemovidos = (numeroRegistrosRemovidos == -1) ? c->numeroRegistrosRemovidos : numeroRegistrosRemovidos;
+    c->numeroRegistrosAtualizados = (numeroRegistrosAtualizados == -1) ? c->numeroRegistrosAtualizados : numeroRegistrosAtualizados;
 }
 
 
@@ -249,59 +393,105 @@ int existe_registros(RegistroCabecalho *cabecalho) {
 
 
 /**
+ * Verifica se o próximo registro a ser lido do arquivo binário consta como logicamente removido.
+ * 
+ * @param bin arquivo binário já aberto.
+ * @return true caso o registro esteja logicamente removido ou false caso contrário (incluindo se o arquivo estiver em EOF).
+ */
+bool verificar_removido(FILE *bin) {
+    int sizeCidadeMae = 0;
+    const long int pos_inicial = ftell(bin);
+
+    fread(&sizeCidadeMae, 4, 1, bin);       //lê o primeiro campo do registro
+    fseek(bin, pos_inicial, SEEK_SET);      //retorna o ponteiro do arquivo para sua posição inicial
+
+    return (sizeCidadeMae == -1);
+}
+
+
+/**
+ * Aponta o ponteiro do arquivo binário para o início do próximo arquivo a ser lido, "pulando" a leitura do registro atual.
+ * 
+ * @param bin arquivo binário já aberto.
+ * @return
+ */
+void pular_registro(FILE *bin) {
+    fseek(bin, +128, SEEK_CUR);
+}
+
+
+/**
+ * Verifica se o ponteiro do arquivo está apontando para a última posição do arquivo (fim do arquivo).
+ * 
+ * @param bin arquivo a ser analizado.
+ * @return true caso o arquivo esteja no fim ou false no caso contrário.
+ */
+bool fim_do_arquivo(FILE *bin) {
+    long int current = ftell(bin);
+    fseek(bin, 0, SEEK_END);
+    
+    long int end = ftell(bin);
+    fseek(bin, current, SEEK_SET);
+
+    return current == end;
+}
+
+
+/**
  * Lê o registro de dados apontado pelo ponteiro de escrita/leitura do arquivo binário.
  * 
  * @param bin ponteiro para o arquivo binário.
  * @return NULL caso o registro esteja logicamente removido; caso contrário, retorna o ponteiro para o registro de dados lido.
  */
-RegistroPessoa* ler_registro_bin(FILE *bin) {
+RegistroPessoa* ler_registro_bin(FILE *bin) 
+{
     int sizeCidadeMae, sizeCidadeBebe;                                              // Guarda os indicadores de tamanho dos campos variáveis
     RegistroPessoa *rp = (RegistroPessoa *) malloc(sizeof(RegistroPessoa));         // Registro de dados
     char lixoCampoVariavel[97];                                                     // Buffer para o espaço não utilizado dos campos variáveis
     
-    if((bin != NULL) && (rp != NULL)) {
+    if((bin != NULL) && (rp != NULL) && !fim_do_arquivo(bin)) {
         /* Lê o indicador de tamanho de cidadeMae testando se o registro existe*/
-        if((fread(&sizeCidadeMae, 4, 1, bin) == 1) && (sizeCidadeMae != -1)) {
-            rp->cidadeMae = (char *) malloc((sizeCidadeMae + 1) * sizeof(char));    // Aloca memória para o campo variável
 
-            /* Lê o indicador de tamanho de cidadeBebe */
-            fread(&sizeCidadeBebe, 4, 1, bin);
-            rp->cidadeBebe = (char *) malloc((sizeCidadeBebe + 1) * sizeof(char));  // Aloca memória para o campo variável
+        fread(&sizeCidadeMae, 4, 1, bin);
+        rp->cidadeMae = (char *) malloc((sizeCidadeMae + 1) * sizeof(char));        // Aloca memória para o campo variável
 
-            /* Lê o campo cidadeMae */
-            fread(rp->cidadeMae, 1, sizeCidadeMae, bin);
-            rp->cidadeMae[sizeCidadeMae] = '\0';
+        /* Lê o indicador de tamanho de cidadeBebe */
+        fread(&sizeCidadeBebe, 4, 1, bin);
+        rp->cidadeBebe = (char *) malloc((sizeCidadeBebe + 1) * sizeof(char));      // Aloca memória para o campo variável
 
-            /* Lê o campo cidadeBebe */
-            fread(rp->cidadeBebe, 1, sizeCidadeBebe, bin);
-            rp->cidadeBebe[sizeCidadeBebe] = '\0';
+        /* Lê o campo cidadeMae */
+        fread(rp->cidadeMae, 1, sizeCidadeMae, bin);
+        rp->cidadeMae[sizeCidadeMae] = '\0';
 
-            /* Lê o resto do espaço do campo variável */
-            fread(lixoCampoVariavel, 1, (97 - (sizeCidadeMae + sizeCidadeBebe)), bin);
-            
-            /* Lê o campo idNascimento */
-            fread(&rp->idNascimento, 4, 1, bin);
-            
-            /* Lê o campo idadeMae */
-            fread(&rp->idadeMae, 4, 1, bin);
-            
-            /* Lê o campo dataNascimento */
-            fread(rp->dataNascimento, 1, 10, bin);
-            rp->dataNascimento[10] = '\0';
-            
-            /* Lê o campo sexoBebe */
-            fread(&rp->sexoBebe, 1, 1, bin);
-            
-            /* Lê o campo estadoMae */
-            fread(rp->estadoMae, 1, 2, bin);
-            rp->estadoMae[2] = '\0';
-            
-            /* Lê o campo estadoBebe */
-            fread(rp->estadoBebe, 1, 2, bin);
-            rp->estadoBebe[2] = '\0';
+        /* Lê o campo cidadeBebe */
+        fread(rp->cidadeBebe, 1, sizeCidadeBebe, bin);
+        rp->cidadeBebe[sizeCidadeBebe] = '\0';
 
-            return rp;
-        }
+        /* Lê o resto do espaço do campo variável */
+        fread(lixoCampoVariavel, 1, (97 - (sizeCidadeMae + sizeCidadeBebe)), bin);
+
+        /* Lê o campo idNascimento */
+        fread(&rp->idNascimento, 4, 1, bin);
+
+        /* Lê o campo idadeMae */
+        fread(&rp->idadeMae, 4, 1, bin);
+        
+        /* Lê o campo dataNascimento */
+        fread(rp->dataNascimento, 1, 10, bin);
+        rp->dataNascimento[10] = '\0';
+
+        /* Lê o campo sexoBebe */
+        fread(&rp->sexoBebe, 1, 1, bin);
+        
+        /* Lê o campo estadoMae */
+        fread(rp->estadoMae, 1, 2, bin);
+        rp->estadoMae[2] = '\0';
+        
+        /* Lê o campo estadoBebe */
+        fread(rp->estadoBebe, 1, 2, bin);
+        rp->estadoBebe[2] = '\0';
+
+        return rp;
     }
 
     /* Apaga o registro alocado no caso do ponteiro de arquivo seja nulo */
@@ -311,6 +501,28 @@ RegistroPessoa* ler_registro_bin(FILE *bin) {
     }
 
     return NULL;
+}
+
+
+/**
+ * Retorna a quantidade de registros inseridos em um arquivo a partir de seu cabeçalho.
+ * 
+ * @param c cabeçalho do arquivo.
+ * @return quantidade de registros inseridos no arquivo até o momento.
+ */
+int qnt_registros_inseridos(RegistroCabecalho *c) {
+    return c->numeroRegistrosInseridos;
+}
+
+
+/**
+ * Retorna a quantidade de registros removidos de um arquivo a partir de seu cabeçalho.
+ * 
+ * @param c cabeçalho do arquivo.
+ * @return quantidade de registros removidos do arquivo até o momento.
+ */
+int qnt_registros_removidos(RegistroCabecalho *c) {
+    return c->numeroRegistrosRemovidos;
 }
 
 
@@ -367,7 +579,15 @@ static void imprimir_checar_vazio(char *campo) {
  * @param rp ponteiro para o registro que será impresso.
  * @return 
  */
-void imprimir_registro(RegistroPessoa *rp) {
+void imprimir_registro_teste(RegistroPessoa *rp) {
     printf("< %s | %s | %d | %d | %s | %c | %s | %s >\n", 
         rp->cidadeMae, rp->cidadeBebe, rp->idNascimento, rp->idadeMae, rp->dataNascimento, rp->sexoBebe, rp->estadoMae, rp->estadoBebe);
+}
+
+
+/**
+ * Wrapper para a função "imprimir_registro_formatado".
+ */
+void imprimir_registro_aux(FILE *bin, RegistroPessoa *rp) {
+    imprimir_registro_formatado(rp);
 }

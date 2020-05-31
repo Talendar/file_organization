@@ -100,7 +100,7 @@ RegistroPessoa* criar_registro(char *cidadeMae, char *cidadeBebe, int idNascimen
         //campos de tamanho fixo
         rp->idNascimento = idNascimento;
         rp->idadeMae = idadeMae;
-        rp->sexoBebe = (!strcmp(sexoBebe, "-1")) ? -1 : sexoBebe[0];
+        rp->sexoBebe = (!strcmp(sexoBebe, "-2")) ? -2 : sexoBebe[0];
 
         strcpy(rp->dataNascimento, dataNascimento);
         strcpy(rp->estadoMae, estadoMae);
@@ -429,7 +429,7 @@ void pular_registro(FILE *bin) {
 void atualizar_registro(RegistroPessoa *original, RegistroPessoa *alteracoes) {
     if(original == NULL || alteracoes == NULL) return;
 
-    if(strncmp(alteracoes->cidadeMae, "-1", 3) != 0) {
+    if(strncmp(alteracoes->cidadeMae, "-2", 3) != 0) {
         free(original->cidadeMae);
         original->cidadeMae = NULL;
         original->cidadeMae = (char *) malloc((strlen(alteracoes->cidadeMae)+1) * sizeof(char));
@@ -437,29 +437,29 @@ void atualizar_registro(RegistroPessoa *original, RegistroPessoa *alteracoes) {
             strcpy(original->cidadeMae, alteracoes->cidadeMae);
     }
     
-    if(strncmp(alteracoes->cidadeBebe, "-1", 3) != 0) {
+    if(strncmp(alteracoes->cidadeBebe, "-2", 3) != 0) {
         free(original->cidadeBebe);
         original->cidadeBebe = NULL;
         original->cidadeBebe = (char *) malloc((strlen(alteracoes->cidadeBebe)+1) * sizeof(char));
         if(original->cidadeMae != NULL)
             strcpy(original->cidadeBebe, alteracoes->cidadeBebe);
     }
-    if(alteracoes->idNascimento != -1)
+    if(alteracoes->idNascimento != -2)
         original->idNascimento = alteracoes->idNascimento;
     
-    if(alteracoes->idadeMae != -1)
+    if(alteracoes->idadeMae != -2)
         original->idNascimento = alteracoes->idadeMae;
     
-    if(strncmp(alteracoes->dataNascimento, "-1", 3) != 0)
+    if(strncmp(alteracoes->dataNascimento, "-2", 3) != 0)
         strcpy(original->dataNascimento, alteracoes->dataNascimento);
     
-    if(alteracoes->sexoBebe != -1)
+    if(alteracoes->sexoBebe != -2)
         original->sexoBebe = alteracoes->sexoBebe;
     
-    if(strncmp(alteracoes->estadoMae, "-1", 3) != 0)
+    if(strncmp(alteracoes->estadoMae, "-2", 3) != 0)
         strcpy(original->estadoMae, alteracoes->estadoMae);
     
-    if(strncmp(alteracoes->estadoBebe, "-1", 3) != 0)
+    if(strncmp(alteracoes->estadoBebe, "-2", 3) != 0)
         strcpy(original->estadoBebe, alteracoes->estadoBebe);
 }
 

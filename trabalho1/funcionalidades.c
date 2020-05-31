@@ -76,19 +76,30 @@ static RegistroPessoa* ler_campos() {
      scanf(" %d", &m);              //lê a quantidade de campos de busca 
 
     //declarando variáveis dos campos com valor padrão (indica que não foram lidas)
-    int idNascimento = -1, idadeMae = -1;
-    char cidadeMae[128] = "-1", cidadeBebe[128] = "-1", 
-         dataNascimento[13] = "-1", sexoBebe[4] = "-1", 
-         estadoMae[5] = "-1", estadoBebe[5] = "-1";
+    int idNascimento = -2, idadeMae = -2;
+    char cidadeMae[128] = "-2", cidadeBebe[128] = "-2", 
+         dataNascimento[13] = "-2", sexoBebe[4] = "-2", 
+         estadoMae[5] = "-2", estadoBebe[5] = "-2",
+         buffer[12];
     
     //lendo os campos
     for(int i = 0; i < m; i++) {
         char campo[32];  scanf(" %s", campo);     //lê o nome do campo
         
-        if(!strcmp(campo, "idNascimento")) 
-            scanf("%d", &idNascimento);          //lê o campo idNascimento
-        else if(!strcmp(campo, "idadeMae")) 
-            scanf("%d", &idadeMae);              //lê o campo idadeMae
+        if(!strcmp(campo, "idNascimento")) {
+            scan_quote_string(buffer);            //lê o campo idNascimento
+            if(strcmp(buffer, "") == 0)           // Converte para inteiro
+                idNascimento = -1;                // Recebe NULO
+            else
+                idNascimento = atoi(buffer);      // Recebe inteiro
+        }
+        else if(!strcmp(campo, "idadeMae")) {
+            scan_quote_string(buffer);           //lê o campo idadeMae
+            if(strcmp(buffer, "") == 0)          // Converte para inteiro
+                idadeMae = -1;                   // Recebe NULO
+            else
+                idadeMae = atoi(buffer);         // Recebe inteiro
+        }
         else if(!strcmp(campo, "cidadeMae")) 
             scan_quote_string(cidadeMae);         //lê o campo cidadeMae
         else if(!strcmp(campo, "cidadeBebe")) 

@@ -293,7 +293,6 @@ void func7(char *bin_pathname, FILE *bin) {
     RegistroPessoa *rp = NULL;                              // Registro de dados
     RegistroPessoa *atualizacao = NULL;                     // Registro com os campos a serem atualizados
     int rrn;
-
     /* Checa se o arquivo existe e está consistente */
     if(cabecalho == NULL) {
         printf("Falha no processamento do arquivo.");   // Mensagem de erro

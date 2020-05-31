@@ -45,6 +45,7 @@
     void imprimir_registro_teste(RegistroPessoa *rp);
     void imprimir_registro_formatado(RegistroPessoa *rp);
     void imprimir_registro_aux(FILE *bin, RegistroPessoa *rp);
+    void imprimir_cabecalho_teste(RegistroCabecalho *c);
 
     /* Funcionalidades adicionais */
     void registro2bin(RegistroPessoa *rp, FILE *bin);

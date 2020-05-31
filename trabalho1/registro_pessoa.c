@@ -122,14 +122,14 @@ RegistroPessoa* criar_registro(char *cidadeMae, char *cidadeBebe, int idNascimen
 bool registros_similares(RegistroPessoa *modelo, RegistroPessoa *candidato)
 {
     if(
-        (strcmp(modelo->cidadeMae, "-1") != 0 && strcmp(modelo->cidadeMae, candidato->cidadeMae) != 0) ||                           //checa cidadeMae
-        (strcmp(modelo->cidadeBebe, "-1") != 0 && strcmp(modelo->cidadeBebe, candidato->cidadeBebe) != 0) ||                        //checa cidadeBebe
-        (strcmp(modelo->dataNascimento, "-1") != 0 && strcmp(modelo->dataNascimento, candidato->dataNascimento) != 0) ||            //checa dataNascimento
-        (strcmp(modelo->estadoMae, "-1") != 0 && strcmp(modelo->estadoMae, candidato->estadoMae) != 0) ||                           //checa estadoMae
-        (strcmp(modelo->estadoBebe, "-1") != 0 && strcmp(modelo->estadoBebe, candidato->estadoBebe) != 0) ||                        //checa estadoBebe
-        (modelo->idNascimento != -1 && modelo->idNascimento != candidato->idNascimento) ||                                          //checa idNascimento
-        (modelo->idadeMae != -1 && modelo->idadeMae != candidato->idadeMae) ||                                                      //checa idadeMae
-        (modelo->sexoBebe != -1 && modelo->sexoBebe != candidato->sexoBebe)                                                         //checa sexoBebe
+        (strcmp(modelo->cidadeMae, "-2") != 0 && strcmp(modelo->cidadeMae, candidato->cidadeMae) != 0) ||                           //checa cidadeMae
+        (strcmp(modelo->cidadeBebe, "-2") != 0 && strcmp(modelo->cidadeBebe, candidato->cidadeBebe) != 0) ||                        //checa cidadeBebe
+        (strcmp(modelo->dataNascimento, "-2") != 0 && strcmp(modelo->dataNascimento, candidato->dataNascimento) != 0) ||            //checa dataNascimento
+        (strcmp(modelo->estadoMae, "-2") != 0 && strcmp(modelo->estadoMae, candidato->estadoMae) != 0) ||                           //checa estadoMae
+        (strcmp(modelo->estadoBebe, "-2") != 0 && strcmp(modelo->estadoBebe, candidato->estadoBebe) != 0) ||                        //checa estadoBebe
+        (modelo->idNascimento != -2 && modelo->idNascimento != candidato->idNascimento) ||                                          //checa idNascimento
+        (modelo->idadeMae != -2 && modelo->idadeMae != candidato->idadeMae) ||                                                      //checa idadeMae
+        (modelo->sexoBebe != -2 && modelo->sexoBebe != candidato->sexoBebe)                                                         //checa sexoBebe
     )
         return false;
 
@@ -448,7 +448,7 @@ void atualizar_registro(RegistroPessoa *original, RegistroPessoa *alteracoes) {
         original->idNascimento = alteracoes->idNascimento;
     
     if(alteracoes->idadeMae != -2)
-        original->idNascimento = alteracoes->idadeMae;
+        original->idadeMae = alteracoes->idadeMae;
     
     if(strncmp(alteracoes->dataNascimento, "-2", 3) != 0)
         strcpy(original->dataNascimento, alteracoes->dataNascimento);
@@ -491,10 +491,10 @@ void atualizar_mantendo_lixo(RegistroPessoa *rp, FILE *bin, int rrn) {
     fseek(bin, (97 - (tamCidadeMae + tamCidadeBebe)), SEEK_CUR);
     fwrite(&rp->idNascimento, 4, 1, bin);
     fwrite(&rp->idadeMae, 4, 1, bin);
-    fwrite(rp->dataNascimento, 1, 10, bin);
+    fwrite_aux(rp->dataNascimento, 10, bin);
     fwrite(&rp->sexoBebe, 1, 1, bin);
-    fwrite(rp->estadoMae, 1, 2, bin);
-    fwrite(rp->estadoBebe, 1, 2, bin);
+    fwrite_aux(rp->estadoMae, 2, bin);
+    fwrite_aux(rp->estadoBebe, 2, bin);
 }
 
 
@@ -681,4 +681,15 @@ void imprimir_registro_teste(RegistroPessoa *rp) {
  */
 void imprimir_registro_aux(FILE *bin, RegistroPessoa *rp) {
     imprimir_registro_formatado(rp);
+}
+
+/**
+ * Imprime no STDOUT, de maneira formatada, as informações armazenadas em um cabeçalho. Função usada para testes.
+ * 
+ * @param c ponteiro para o cabeçalho que será impresso.
+ * @return 
+ */
+void imprimir_cabecalho_teste(RegistroCabecalho *c) {
+    printf("< %c | %d | %d | %d | %d | %s >\n",
+        c->status, c->RRNproxRegistro, c->numeroRegistrosInseridos, c->numeroRegistrosRemovidos, c->numeroRegistrosAtualizados, c->lixo);
 }

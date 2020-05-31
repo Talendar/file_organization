@@ -80,7 +80,7 @@ bool bin2txt(FILE *bin)
     /* Checa se o cabeçalho existe e se o arquivo é consistente */
     if(((cabecalho = ler_cabecalho_bin(bin)) != NULL)) {
         if(existe_registros(cabecalho)) {                                                         // Checa se há registros de dados
-            RegistroPessoa *modelo = criar_registro("-1", "-1", -1, -1, "-1", "-1", "-1", "-1");  // Registro modelo de busca com valores defaults (indicam que o campo deve ser ignorado na busca)
+            RegistroPessoa *modelo = criar_registro("-2", "-2", -2, -2, "-2", "-2", "-2", "-2");  // Registro modelo de busca com valores defaults (indicam que o campo deve ser ignorado na busca)
             buscar_registros(bin, modelo, &imprimir_registro_aux);                                // Imprime todos os registros do arquivo
             
             free(cabecalho);    // Apaga o cabeçalho da memória RAM

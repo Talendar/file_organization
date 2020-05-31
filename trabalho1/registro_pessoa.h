@@ -22,6 +22,8 @@
     int buscar_registros(FILE *bin, RegistroPessoa *modelo, void (*func)(FILE *bin, RegistroPessoa *rp));
     bool verificar_removido(FILE *bin);
     void pular_registro(FILE *bin);
+    void atualizar_registro(RegistroPessoa *original, RegistroPessoa *alteracoes);
+    void atualizar_mantendo_lixo(RegistroPessoa *rp, FILE *bin, int rrn);
 
     /* Desalocação de memória */
     void liberar_registro(RegistroPessoa **rp, bool liberar_campos_variaveis);
@@ -33,9 +35,11 @@
     void atualizar_cabecalho(RegistroCabecalho *c, char status, int RRNproxRegistro, int numeroRegistrosInseridos, int numeroRegistrosRemovidos, int numeroRegistrosAtualizados);
 
     /* Consultas a registros de cabeçalho */
+    int proximo_rrn(RegistroCabecalho *cabecalho);
     int existe_registros(RegistroCabecalho *cabecalho);
     int qnt_registros_inseridos(RegistroCabecalho *c);
     int qnt_registros_removidos(RegistroCabecalho *c);
+    int qnt_registros_atualizados(RegistroCabecalho *c);
 
     /* Impressão no STDOUT */
     void imprimir_registro_teste(RegistroPessoa *rp);

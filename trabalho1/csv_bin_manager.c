@@ -75,7 +75,6 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
  */
 bool bin2txt(FILE *bin) 
 {
-    RegistroPessoa *rp = NULL;              // Registro de dados
     RegistroCabecalho *cabecalho = NULL;    // Registro de cabeçalho
     
     /* Checa se o cabeçalho existe e se o arquivo é consistente */

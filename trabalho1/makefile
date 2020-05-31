@@ -1,4 +1,4 @@
-run: programaTrab
+run:
 	./programaTrab
 
 all: clean main.o funcionalidades.o csv_bin_manager.o registro_pessoa.o

@@ -419,6 +419,84 @@ void pular_registro(FILE *bin) {
     fseek(bin, +128, SEEK_CUR);
 }
 
+/**
+ * Atualiza os campos de um registro com base em outro.
+ * 
+ * @param original Registro a ser modificado.
+ * @param alteracoes Registro com campos a serem modificados.
+ * @return
+ */
+void atualizar_registro(RegistroPessoa *original, RegistroPessoa *alteracoes) {
+    if(original == NULL || alteracoes == NULL) return;
+
+    if(strncmp(alteracoes->cidadeMae, "-1", 3) != 0) {
+        free(original->cidadeMae);
+        original->cidadeMae = NULL;
+        original->cidadeMae = (char *) malloc((strlen(alteracoes->cidadeMae)+1) * sizeof(char));
+        if(original->cidadeMae != NULL)
+            strcpy(original->cidadeMae, alteracoes->cidadeMae);
+    }
+    
+    if(strncmp(alteracoes->cidadeBebe, "-1", 3) != 0) {
+        free(original->cidadeBebe);
+        original->cidadeBebe = NULL;
+        original->cidadeBebe = (char *) malloc((strlen(alteracoes->cidadeBebe)+1) * sizeof(char));
+        if(original->cidadeMae != NULL)
+            strcpy(original->cidadeBebe, alteracoes->cidadeBebe);
+    }
+    if(alteracoes->idNascimento != -1)
+        original->idNascimento = alteracoes->idNascimento;
+    
+    if(alteracoes->idadeMae != -1)
+        original->idNascimento = alteracoes->idadeMae;
+    
+    if(strncmp(alteracoes->dataNascimento, "-1", 3) != 0)
+        strcpy(original->dataNascimento, alteracoes->dataNascimento);
+    
+    if(alteracoes->sexoBebe != -1)
+        original->sexoBebe = alteracoes->sexoBebe;
+    
+    if(strncmp(alteracoes->estadoMae, "-1", 3) != 0)
+        strcpy(original->estadoMae, alteracoes->estadoMae);
+    
+    if(strncmp(alteracoes->estadoBebe, "-1", 3) != 0)
+        strcpy(original->estadoBebe, alteracoes->estadoBebe);
+}
+
+/**
+ * Atualiza o registro no arquivo mantendo o lixo já presente.
+ * 
+ * @param rp Registro contendo os campos atualizados.
+ * @param bin Arquivo binário a ser escrito.
+ * @param rrn RRN do registro a ser atualizado.
+ * @return
+ */
+void atualizar_mantendo_lixo(RegistroPessoa *rp, FILE *bin, int rrn) {
+    if(rp == NULL || bin == NULL) return;
+
+    int tamCidadeMae = strlen(rp->cidadeMae);
+    int tamCidadeBebe = strlen(rp->cidadeBebe);
+
+    /* Testa se o registro original existe */
+    RegistroPessoa *teste = registro_em(rrn, bin);  // Busca o registro original
+    if(teste == NULL) return;                       // Encerra a execução se não existe
+    liberar_registro(&teste, true);                 // Apaga o teste
+    
+    /* Atualiza o registro */
+    fseek(bin, ((long) rrn * 128) + 128, SEEK_SET); // Procura a posição do registro
+    fwrite(&tamCidadeMae, 4, 1, bin);
+    fwrite(&tamCidadeBebe, 4, 1, bin);
+    fwrite(rp->cidadeMae, 1, tamCidadeMae, bin);
+    fwrite(rp->cidadeBebe, 1, tamCidadeBebe, bin);
+    fseek(bin, (97 - (tamCidadeMae + tamCidadeBebe)), SEEK_CUR);
+    fwrite(&rp->idNascimento, 4, 1, bin);
+    fwrite(&rp->idadeMae, 4, 1, bin);
+    fwrite(rp->dataNascimento, 1, 10, bin);
+    fwrite(&rp->sexoBebe, 1, 1, bin);
+    fwrite(rp->estadoMae, 1, 2, bin);
+    fwrite(rp->estadoBebe, 1, 2, bin);
+}
+
 
 /**
  * Verifica se o ponteiro do arquivo está apontando para a última posição do arquivo (fim do arquivo).
@@ -503,6 +581,9 @@ RegistroPessoa* ler_registro_bin(FILE *bin)
     return NULL;
 }
 
+int proximo_rrn(RegistroCabecalho *cabecalho) {
+    return cabecalho->RRNproxRegistro;
+}
 
 /**
  * Retorna a quantidade de registros inseridos em um arquivo a partir de seu cabeçalho.
@@ -523,6 +604,16 @@ int qnt_registros_inseridos(RegistroCabecalho *c) {
  */
 int qnt_registros_removidos(RegistroCabecalho *c) {
     return c->numeroRegistrosRemovidos;
+}
+
+/**
+ * Retorna a quantidade de registros atualizados de um arquivo a partir de seu cabeçalho.
+ * 
+ * @param c cabeçalho do arquivo.
+ * @return quantidade de registros atualizados do arquivo até o momento.
+ */
+int qnt_registros_atualizados(RegistroCabecalho *c) {
+    return c->numeroRegistrosAtualizados;
 }
 
 

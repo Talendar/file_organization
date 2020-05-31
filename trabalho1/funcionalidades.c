@@ -80,15 +80,15 @@ static RegistroPessoa* ler_campos() {
     char cidadeMae[128] = "-1", cidadeBebe[128] = "-1", 
          dataNascimento[13] = "-1", sexoBebe[4] = "-1", 
          estadoMae[5] = "-1", estadoBebe[5] = "-1";
-
+    
     //lendo os campos
     for(int i = 0; i < m; i++) {
         char campo[32];  scanf(" %s", campo);     //lê o nome do campo
         
         if(!strcmp(campo, "idNascimento")) 
-            scanf(" %d", &idNascimento);          //lê o campo idNascimento
+            scanf("%d", &idNascimento);          //lê o campo idNascimento
         else if(!strcmp(campo, "idadeMae")) 
-            scanf(" %d", &idadeMae);              //lê o campo idadeMae
+            scanf("%d", &idadeMae);              //lê o campo idadeMae
         else if(!strcmp(campo, "cidadeMae")) 
             scan_quote_string(cidadeMae);         //lê o campo cidadeMae
         else if(!strcmp(campo, "cidadeBebe")) 
@@ -123,7 +123,7 @@ void func3(FILE *bin)
     liberar_registro(&wanted, true);
     
     if(encontrados == 0)
-        printf("Registro Inexistente.\n");
+        printf("Registro Inexistente.");
 }
 
 
@@ -142,7 +142,7 @@ void func4(FILE *bin)
         liberar_registro(&rp, true);
     }
     else 
-        printf("Registro Inexistente.\n");
+        printf("Registro Inexistente.");
 }
 
 
@@ -177,20 +177,155 @@ void func5(char *bin_pathname, FILE *bin)
 
 
 /**
- * Funcionalidade 6 do programa. TO_DO: descrição
+ * Funcionalidade 6 do programa. Insere diversos registros a partir do STDOUT. Fecha o arquivo no fim da execucao.
+ * Formato do STDOUT: numeroInserções\n
+ *                    campo1 campo2 campo3...\n
+ *                    campo1 campo2 campo3...\n
+ *                    ...
  * 
+ * @param bin_pathname nome do arquivo binário; necessário para a chamada da função binarioNaTela.
  * @param bin arquivo binário a ser utilizado.
  */
-void func6(FILE *bin) {
-    //to_do
+void func6(char *bin_pathname, FILE *bin) {
+    int n;                                                  // Número de execuções da funçionalidade
+    RegistroCabecalho *cabecalho = ler_cabecalho_bin(bin);  // Registro de cabeçalho
+    RegistroPessoa *rp = NULL;                              // Registro de dados
+    char cidadeMae[98], cidadeBebe[98], dataNascimento[11], sexoBebe, estadoMae[3], estadoBebe[3];  // Buffer de campos
+    int idNascimento, idadeMae;                                                                     // Buffer de campos
+    char buffer[12];                                 // Buffer para ler inteiro, char ou NULO
+
+    /* Checa se o arquivo existe e está consistente */
+    if(cabecalho == NULL) {
+        printf("Falha no processamento do arquivo.");   // Mensagem de erro
+        fclose(bin);                                    // Fecha o arquivo
+        return;
+    }
+
+    /* Atualiza a consistencia do arquivo */
+    atualizar_cabecalho(cabecalho, '0', -1, -1, -1, -1);    // Atualiza o status
+    escrever_cabecalho(cabecalho, bin);                     // Escreve no arquivo
+
+    scanf("%d", &n);    // Lê o número de execuções
+
+    /* Executa n vezes a funcionalidade */
+    while(n > 0) {
+        /* Leitura dos campos */
+        scan_quote_string(cidadeMae);
+        scan_quote_string(cidadeBebe);
+
+        scan_quote_string(buffer);
+        if(strcmp(buffer, "") == 0)
+            idNascimento = -1;
+        else
+            idNascimento = atoi(buffer);
+        
+        scan_quote_string(buffer);
+        if(strcmp(buffer, "") == 0)
+            idadeMae = -1;
+        else
+            idadeMae = atoi(buffer);
+        
+        scan_quote_string(dataNascimento);
+
+        scan_quote_string(buffer);
+        if(strcmp(buffer, "") == 0)
+            sexoBebe = '0';
+        else
+            sexoBebe = buffer[0];
+        
+        scan_quote_string(estadoMae);
+        scan_quote_string(estadoBebe);
+
+        /* Cria o registro */
+        rp = criar_registro(cidadeMae, cidadeBebe, idNascimento, idadeMae, dataNascimento, &sexoBebe, estadoMae, estadoBebe);
+        if(rp == NULL) {
+            printf("Falha no processamento do arquivo.");           // Mensagem de erro
+            atualizar_cabecalho(cabecalho, '1', -1, -1, -1, -1);    // Atualiza o status
+            escrever_cabecalho(cabecalho, bin);                     // Escreve o cabeçalho
+            free(cabecalho);                                        // Apaga o cabeçalho
+            cabecalho = NULL;
+            fclose(bin);                                            // Fecha o arquivo
+            return;
+        }
+
+        /* Insere o registro */
+        fseek(bin, ((long) proximo_rrn(cabecalho) * 128) + 128, SEEK_SET);  // Procura a posição a ser inserida
+        registro2bin(rp, bin);                                              // Insere o registro
+
+        /* Atualiza as informações de cabeçalho */
+        atualizar_cabecalho(cabecalho, -1, proximo_rrn(cabecalho) + 1, qnt_registros_inseridos(cabecalho) + 1, -1, -1);
+
+        /* Prepara para o próximo loop */
+        liberar_registro(&rp, true);    // Desaloca o registro atual
+        n--;                            // Diminui o contador de execuções restantes
+    }
+
+    /* Finaliza a funcionalidade */
+    atualizar_cabecalho(cabecalho, '1', -1, -1, -1, -1);    // Atualiza o status
+    escrever_cabecalho(cabecalho, bin);                     // Escreve o cabeçalho
+    free(cabecalho);                                        // Apaga o cabeçalho
+    cabecalho = NULL;
+    fclose(bin);                                            // Fecha o arquivo
+    binarioNaTela(bin_pathname);                            // Chama o binarioNaTela()
 }
 
 
 /**
  * Funcionalidade 7 do programa. TO_DO: descrição
  * 
+ * @param bin_pathname nome do arquivo binário; necessário para a chamada da função binarioNaTela.
  * @param bin arquivo binário a ser utilizado.
  */
-void func7(FILE *bin) {
-    //to_do
+void func7(char *bin_pathname, FILE *bin) {
+    int n;                                                  // Número de execuções da funçionalidade
+    RegistroCabecalho *cabecalho = ler_cabecalho_bin(bin);  // Registro de cabeçalho
+    RegistroPessoa *rp = NULL;                              // Registro de dados
+    RegistroPessoa *atualizacao = NULL;                     // Registro com os campos a serem atualizados
+    int rrn;
+
+    /* Checa se o arquivo existe e está consistente */
+    if(cabecalho == NULL) {
+        printf("Falha no processamento do arquivo.");   // Mensagem de erro
+        fclose(bin);                                    // Fecha o arquivo
+        return;
+    }
+
+    /* Atualiza a consistencia do arquivo */
+    atualizar_cabecalho(cabecalho, '0', -1, -1, -1, -1);    // Atualiza o status
+    escrever_cabecalho(cabecalho, bin);                     // Escreve no arquivo
+
+    scanf("%d", &n);    // Lê o número de execuções
+
+    /* Executa n vezes a funcionalidade */
+    while(n > 0) {
+        /* Decrementa o numero de iteracoes restantes */
+        n--;
+        /* Leitura da entrada do usuário */
+        scanf(" %d", &rrn);              // Lê o RRN do registro a ser modificado
+        atualizacao = ler_campos();     // Lê os campos a serem modificados
+        
+        /* Busca do registro especificado pelo RRN */
+        rp = registro_em(rrn, bin);     // Busca o registro
+        if(rp == NULL) {
+            liberar_registro(&atualizacao, true);   // Apaga o registro de campos modificados da memória
+            continue;                               // Passa para a próxima iteração caso o registro não exista
+        }
+        
+        /* Atualiza o registro e insere no arquivo */
+        atualizar_registro(rp, atualizacao);    // Atualiza o registro
+        atualizar_mantendo_lixo(rp, bin, rrn);  // Atualiza no arquivo mantendo o lixo
+        atualizar_cabecalho(cabecalho, -1, -1, -1, -1, qnt_registros_atualizados(cabecalho) + 1);
+        
+        /* Prepara para a próxima iteração */
+        liberar_registro(&rp, true);            // Apaga o registro da memória
+        liberar_registro(&atualizacao, true);   // Apaga o registro de campos modificados da memória
+    }
+
+    /* Finaliza a funcionalidade */ 
+    atualizar_cabecalho(cabecalho, '1', -1, -1, -1, -1);    // Atualiza o status
+    escrever_cabecalho(cabecalho, bin);                     // Escreve o cabeçalho
+    free(cabecalho);                                        // Apaga o cabeçalho
+    cabecalho = NULL;
+    fclose(bin);                                            // Fecha o arquivo
+    binarioNaTela(bin_pathname);                            // Chama o binarioNaTela()
 }

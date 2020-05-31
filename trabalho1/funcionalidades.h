@@ -7,6 +7,6 @@
     void func3(FILE *bin);
     void func4(FILE *bin);
     void func5(char *bin_pathname, FILE *bin);
-    void func6(FILE *bin);
-    void func7(FILE *bin);
+    void func6(char *bin_pathname, FILE *bin);
+    void func7(char *bin_pathname, FILE *bin);
 #endif

@@ -1,3 +1,8 @@
+/**
+ * Este módulo tem por objetivo encapsular a execução das funcionalidades do programa.
+ */
+
+
 #include "funcionalidades.h"
 #include <stdlib.h>
 #include <string.h>
@@ -31,7 +36,7 @@ void func2(FILE *bin) {
 
 
 /*
-*	Use essa função para ler um campo string delimitado entre aspas (").
+*	Use esta função para ler um campo string delimitado entre aspas (").
 *	Chame ela na hora que for ler tal campo. Por exemplo:
 *
 *	A entrada está da seguinte forma:
@@ -47,18 +52,18 @@ static void scan_quote_string(char *str) {
 
 	while((R = getchar()) != EOF && isspace(R)); // ignorar espaços, \r, \n...
 
-	if(R == 'N' || R == 'n') { // campo NULO
-		getchar(); getchar(); getchar(); // ignorar o "ULO" de NULO.
-		strcpy(str, ""); // copia string vazia
+	if(R == 'N' || R == 'n') {                   // campo NULO
+		getchar(); getchar(); getchar();         // ignorar o "ULO" de NULO.
+		strcpy(str, "");                         // copia string vazia
 	} else if(R == '\"') {
-		if(scanf("%[^\"]", str) != 1) { // ler até o fechamento das aspas
+		if(scanf("%[^\"]", str) != 1) {          // ler até o fechamento das aspas
 			strcpy(str, "");
 		}
-		getchar(); // ignorar aspas fechando
-	} else if(R != EOF){ // vc tá tentando ler uma string que não tá entre aspas! Fazer leitura normal %s então, pois deve ser algum inteiro ou algo assim...
+		getchar();        // ignorar aspas fechando
+	} else if(R != EOF){  // vc tá tentando ler uma string que não tá entre aspas! Fazer leitura normal %s então, pois deve ser algum inteiro ou algo assim...
 		str[0] = R;
 		scanf("%s", &str[1]);
-	} else { // EOF
+	} else {            // EOF
 		strcpy(str, "");
 	}
 }
@@ -88,17 +93,17 @@ static RegistroPessoa* ler_campos() {
         
         if(!strcmp(campo, "idNascimento")) {
             scan_quote_string(buffer);            //lê o campo idNascimento
-            if(strcmp(buffer, "") == 0)           // Converte para inteiro
-                idNascimento = -1;                // Recebe NULO
+            if(strcmp(buffer, "") == 0)           //converte para inteiro
+                idNascimento = -1;                //recebe NULO
             else
-                idNascimento = atoi(buffer);      // Recebe inteiro
+                idNascimento = atoi(buffer);      //recebe inteiro
         }
         else if(!strcmp(campo, "idadeMae")) {
-            scan_quote_string(buffer);           //lê o campo idadeMae
-            if(strcmp(buffer, "") == 0)          // Converte para inteiro
-                idadeMae = -1;                   // Recebe NULO
+            scan_quote_string(buffer);            //lê o campo idadeMae
+            if(strcmp(buffer, "") == 0)           //converte para inteiro
+                idadeMae = -1;                    //recebe NULO
             else
-                idadeMae = atoi(buffer);         // Recebe inteiro
+                idadeMae = atoi(buffer);          //recebe inteiro
         }
         else if(!strcmp(campo, "cidadeMae")) 
             scan_quote_string(cidadeMae);         //lê o campo cidadeMae
@@ -107,7 +112,7 @@ static RegistroPessoa* ler_campos() {
         else if(!strcmp(campo, "dataNascimento")) 
             scan_quote_string(dataNascimento);    //lê o campo dataNascimento
         else if(!strcmp(campo, "sexoBebe")) 
-            scan_quote_string(sexoBebe);         //lê o campo sexoBebe
+            scan_quote_string(sexoBebe);          //lê o campo sexoBebe
         else if(!strcmp(campo, "estadoMae")) 
             scan_quote_string(estadoMae);         //lê o campo cidadeBebe
         else if(!strcmp(campo, "estadoBebe")) 
@@ -188,7 +193,7 @@ void func5(char *bin_pathname, FILE *bin)
 
 
 /**
- * Funcionalidade 6 do programa. Insere diversos registros a partir do STDOUT. Fecha o arquivo no fim da execucao.
+ * Funcionalidade 6 do programa. Lê registros do STDOUT e os insere em um arquivo. Fecha o arquivo no fim da execucao.
  * Formato do STDOUT: numeroInserções\n
  *                    campo1 campo2 campo3...\n
  *                    campo1 campo2 campo3...\n
@@ -216,7 +221,7 @@ void func6(char *bin_pathname, FILE *bin) {
     atualizar_cabecalho(cabecalho, '0', -1, -1, -1, -1);    // Atualiza o status
     escrever_cabecalho(cabecalho, bin);                     // Escreve no arquivo
 
-    scanf("%d", &n);    // Lê o número de execuções
+    scanf("%d", &n);                                        // Lê o número de execuções
 
     /* Executa n vezes a funcionalidade */
     while(n > 0) {

@@ -1,3 +1,8 @@
+/**
+ * Este módulo implementa o necessário para lidar com registros de dados em um arquivo.
+ */
+
+
 #include "registro_pessoa.h"
 #include <stdlib.h>
 #include <string.h>
@@ -107,7 +112,6 @@ RegistroPessoa* criar_registro(char *cidadeMae, char *cidadeBebe, int idNascimen
         strcpy(rp->estadoBebe, estadoBebe);
     }
 
-    //imprimir_registro_teste(rp);
     return rp;
 }
 
@@ -122,14 +126,14 @@ RegistroPessoa* criar_registro(char *cidadeMae, char *cidadeBebe, int idNascimen
 bool registros_similares(RegistroPessoa *modelo, RegistroPessoa *candidato)
 {
     if(
-        (strcmp(modelo->cidadeMae, "-2") != 0 && strcmp(modelo->cidadeMae, candidato->cidadeMae) != 0) ||                           //checa cidadeMae
-        (strcmp(modelo->cidadeBebe, "-2") != 0 && strcmp(modelo->cidadeBebe, candidato->cidadeBebe) != 0) ||                        //checa cidadeBebe
-        (strcmp(modelo->dataNascimento, "-2") != 0 && strcmp(modelo->dataNascimento, candidato->dataNascimento) != 0) ||            //checa dataNascimento
-        (strcmp(modelo->estadoMae, "-2") != 0 && strcmp(modelo->estadoMae, candidato->estadoMae) != 0) ||                           //checa estadoMae
-        (strcmp(modelo->estadoBebe, "-2") != 0 && strcmp(modelo->estadoBebe, candidato->estadoBebe) != 0) ||                        //checa estadoBebe
-        (modelo->idNascimento != -2 && modelo->idNascimento != candidato->idNascimento) ||                                          //checa idNascimento
-        (modelo->idadeMae != -2 && modelo->idadeMae != candidato->idadeMae) ||                                                      //checa idadeMae
-        (modelo->sexoBebe != -2 && modelo->sexoBebe != candidato->sexoBebe)                                                         //checa sexoBebe
+        (strcmp(modelo->cidadeMae, "-2") != 0 && strcmp(modelo->cidadeMae, candidato->cidadeMae) != 0) ||                     //checa cidadeMae
+        (strcmp(modelo->cidadeBebe, "-2") != 0 && strcmp(modelo->cidadeBebe, candidato->cidadeBebe) != 0) ||                  //checa cidadeBebe
+        (strcmp(modelo->dataNascimento, "-2") != 0 && strcmp(modelo->dataNascimento, candidato->dataNascimento) != 0) ||      //checa dataNascimento
+        (strcmp(modelo->estadoMae, "-2") != 0 && strcmp(modelo->estadoMae, candidato->estadoMae) != 0) ||                     //checa estadoMae
+        (strcmp(modelo->estadoBebe, "-2") != 0 && strcmp(modelo->estadoBebe, candidato->estadoBebe) != 0) ||                  //checa estadoBebe
+        (modelo->idNascimento != -2 && modelo->idNascimento != candidato->idNascimento) ||                                    //checa idNascimento
+        (modelo->idadeMae != -2 && modelo->idadeMae != candidato->idadeMae) ||                                                //checa idadeMae
+        (modelo->sexoBebe != -2 && modelo->sexoBebe != candidato->sexoBebe)                                                   //checa sexoBebe
     )
         return false;
 
@@ -195,7 +199,7 @@ int buscar_registros(FILE *bin, RegistroPessoa *modelo, void (*func)(FILE *bin, 
 
 
 /**
- * Busca, em um arquivo, pelo registro no RRN especificado.
+ * Busca, em um arquivo, pelo registro com o RRN especificado.
  * 
  * @param rrn RRN (relative record number) do registro que se deseja resgatar.
  * @param bin arquivo binário no qual será realizada a busca.
@@ -299,7 +303,7 @@ RegistroCabecalho* criar_cabecalho(void)
     RegistroCabecalho *c = malloc(sizeof(RegistroCabecalho));   // Cria o cabeçalho
     if(c != NULL) {
         /* Inicializa os campos */
-        c->status = '0';         // arquivo marcado, inicialmente, como inconsistente
+        c->status = '0';            // arquivo marcado, inicialmente, como inconsistente
         c->RRNproxRegistro = 0;
         c->numeroRegistrosInseridos = 0;
         c->numeroRegistrosAtualizados = 0;
@@ -308,7 +312,7 @@ RegistroCabecalho* criar_cabecalho(void)
         /* Preenche com '$' o lixo */
         for(int i = 0; i < 111; i++)
             c->lixo[i] = '$';
-        c->lixo[111] = '\0';    // Coloca o '\0' no fim para usar como string
+        c->lixo[111] = '\0';        // Coloca o '\0' no fim para usar como string
     }
 
     return c;
@@ -422,8 +426,8 @@ void pular_registro(FILE *bin) {
 /**
  * Atualiza os campos de um registro com base em outro.
  * 
- * @param original Registro a ser modificado.
- * @param alteracoes Registro com campos a serem modificados.
+ * @param original registro a ser modificado.
+ * @param alteracoes registro com campos a serem modificados.
  * @return
  */
 void atualizar_registro(RegistroPessoa *original, RegistroPessoa *alteracoes) {
@@ -463,11 +467,12 @@ void atualizar_registro(RegistroPessoa *original, RegistroPessoa *alteracoes) {
         strcpy(original->estadoBebe, alteracoes->estadoBebe);
 }
 
+
 /**
  * Atualiza o registro no arquivo mantendo o lixo já presente.
  * 
- * @param rp Registro contendo os campos atualizados.
- * @param bin Arquivo binário a ser escrito.
+ * @param rp registro contendo os campos atualizados.
+ * @param bin arquivo binário a ser escrito.
  * @param rrn RRN do registro a ser atualizado.
  * @return
  */
@@ -581,9 +586,14 @@ RegistroPessoa* ler_registro_bin(FILE *bin)
     return NULL;
 }
 
+
+/**
+ * Retorna o RRN do próximo registro a ser inserido.
+ */
 int proximo_rrn(RegistroCabecalho *cabecalho) {
     return cabecalho->RRNproxRegistro;
 }
+
 
 /**
  * Retorna a quantidade de registros inseridos em um arquivo a partir de seu cabeçalho.
@@ -606,6 +616,7 @@ int qnt_registros_removidos(RegistroCabecalho *c) {
     return c->numeroRegistrosRemovidos;
 }
 
+
 /**
  * Retorna a quantidade de registros atualizados de um arquivo a partir de seu cabeçalho.
  * 
@@ -625,11 +636,11 @@ int qnt_registros_atualizados(RegistroCabecalho *c) {
 void imprimir_registro_formatado(RegistroPessoa *rp) {
     printf("Nasceu em ");                       // Imprime "Nasceu em "
     imprimir_checar_vazio(rp->cidadeBebe);      // Imprime cidadeBebe ou "-"
-    printf("/");                                // Imprime "/"
+    printf("/");                                
     imprimir_checar_vazio(rp->estadoBebe);      // Imprime estadoBebe ou "-"
-    printf(", em ");                            // Imprime ", em "
+    printf(", em ");                            
     imprimir_checar_vazio(rp->dataNascimento);  // Imprime dataNascimento ou "-"
-    printf(", um bebê de sexo ");               // Imprime ", um bebê de sexo "
+    printf(", um bebê de sexo ");               
     
     switch(rp->sexoBebe) {                      // Imprime "IGNORADO" se 0 ou nulo, MASCULINO se 1, FEMININO se 2
     case '0':
@@ -682,6 +693,7 @@ void imprimir_registro_teste(RegistroPessoa *rp) {
 void imprimir_registro_aux(FILE *bin, RegistroPessoa *rp) {
     imprimir_registro_formatado(rp);
 }
+
 
 /**
  * Imprime no STDOUT, de maneira formatada, as informações armazenadas em um cabeçalho. Função usada para testes.

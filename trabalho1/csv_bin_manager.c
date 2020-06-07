@@ -1,3 +1,8 @@
+/**
+ * Este módulo lida com a leitura e escrita de arquivos binários e csv.
+ */
+
+
 #include "csv_bin_manager.h"
 #include "registro_pessoa.h"
 #include <stdlib.h>

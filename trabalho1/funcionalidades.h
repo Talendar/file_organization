@@ -1,3 +1,8 @@
+/**
+ * Este módulo tem por objetivo encapsular a execução das funcionalidades do programa.
+ */
+
+
 #ifndef FUNCIONALIDADES_H
     #define FUNCIONALIDADES_H
     #include <stdio.h>

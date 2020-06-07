@@ -1,3 +1,8 @@
+/**
+ * Este módulo implementa o necessário para lidar com registros de dados em um arquivo.
+ */
+
+
 #ifndef REGISTRO_PESSOA_H
     #define REGISTRO_PESSOA_H
     #include <stdio.h>

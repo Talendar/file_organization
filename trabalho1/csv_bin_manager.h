@@ -1,3 +1,8 @@
+/**
+ * Este módulo lida com a leitura e escrita de arquivos binários e csv.
+ */
+
+
 #ifndef CSV_BIN_MANAGER_H
     #define CSV_BIN_MANAGER_H
     #include <stdbool.h>

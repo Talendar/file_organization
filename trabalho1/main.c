@@ -2,8 +2,8 @@
  * ICMC - Universidade de São Paulo (USP)
  * Trabalho 2 de Organização de Arquivos
  * 
- * Gabriel Nogueira
- * Lucas Yamamoto
+ * Gabriel Nogueira (TO_DO: completar nome e colocar NUSP)
+ * Lucas Yamamoto (TO_DO: completar nome e colocar NUSP)
  */
 
 
@@ -42,11 +42,11 @@ int main(void)
                 bin = NULL;                                 // Necessário para que não se tente fechar o arquivo novamente (ele já foi fechado na func5)
             }
             else if(opt == 6) {
-                func6(bin_pathname, bin);                                 // Executa a funcionalidade 6
+                func6(bin_pathname, bin);                   // Executa a funcionalidade 6
                 bin = NULL;
             }
             else if(opt == 7) {
-                func7(bin_pathname, bin);                                 // Executa a funcionalidade 7
+                func7(bin_pathname, bin);                   // Executa a funcionalidade 7
                 bin = NULL;
             }
             if(bin != NULL)

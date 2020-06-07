@@ -194,6 +194,9 @@ int buscar_registros(FILE *bin, RegistroPessoa *modelo, void (*func)(FILE *bin, 
         }
     } while(!fim_do_arquivo(bin));
 
+    if(rp != NULL)
+        liberar_registro(&rp, true);                    // Apaga o último registro
+
     return count;     //retorna a quantidade de registros encontrados
 }
 

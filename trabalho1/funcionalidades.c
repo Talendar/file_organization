@@ -187,6 +187,9 @@ void func5(char *bin_pathname, FILE *bin)
         qnt_registros_inseridos(cabecalho) - count, count, -1);         //atualiza no cabeçalho os campos "status", "numeroRegistrosInseridos" e "numeroRegistrosRemovidos"
     escrever_cabecalho(cabecalho, bin);                                 //escreve o cabeçalho atualizado no arquivo
 
+    free(cabecalho);                                                    // Apaga o registro de cabeçalho
+    cabecalho = NULL;
+
     fclose(bin);                                                        //necessário para a execução da binarioNaTela
     binarioNaTela(bin_pathname);
 }
@@ -287,7 +290,11 @@ void func6(char *bin_pathname, FILE *bin) {
 
 
 /**
- * Funcionalidade 7 do programa. TO_DO: descrição
+ * Funcionalidade 7 do programa. Atualiza os registros especificados no STDOUT. Fecha o arquivo no fim da execucao.
+ * Formato do STDOUT: numeroAtualizações\n
+ *                    RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
+ *                    RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
+ *                    ...
  * 
  * @param bin_pathname nome do arquivo binário; necessário para a chamada da função binarioNaTela.
  * @param bin arquivo binário a ser utilizado.

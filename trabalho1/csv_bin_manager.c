@@ -1,9 +1,9 @@
 #include "csv_bin_manager.h"
 #include "registro_pessoa.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
 
 /**
  * Cria um arquivo binário a partir de um arquivo csv.
@@ -56,7 +56,7 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
     line = NULL;
 
     //atualizando header
-    atualizar_cabecalho(cabecalho, '1', count, count, 0);
+    atualizar_cabecalho(cabecalho, '1', count, count, 0, 0);
     escrever_cabecalho(cabecalho, bin);
     free(cabecalho);
 
@@ -70,39 +70,31 @@ bool csv_para_binario(char *csv_pathname, char *bin_pathname)
 /**
  * Lê o arquivo binário e imprime (no STDOUT) algumas informações relativas a cada um de seus registros.
  * 
- * @param bin_pathname pathname para o arquivo binário que será lido.
+ * @param bin arquivo binário que será lido.
  * @return true caso o procedimento tenha executado corretamente; false caso tenha havido algum erro.
  */
-bool bin2txt(char *bin_pathname) 
+bool bin2txt(FILE *bin) 
 {
-    RegistroPessoa *rp = NULL;              // Registro de dados
     RegistroCabecalho *cabecalho = NULL;    // Registro de cabeçalho
-    FILE *bin = fopen(bin_pathname, "rb");  // Arquivo binário
     
-    /* Checa se o arquivo e o cabeçalho existe e é consistente */
-    if((bin != NULL) && ((cabecalho = ler_cabecalho_bin(bin)) != NULL)) {
-        if(existe_registros(cabecalho)) {                   // Checa se há registros de dados
-            while((rp = ler_registro_bin(bin)) != NULL) {   // Enquanto houver registros, lê o registro
-                imprimir_registro_formatado(rp);            // Imprime o registro no formato apropriado
-                liberar_registro(&rp, true);                // Apaga da memória RAM o registro lido
-            }
+    /* Checa se o cabeçalho existe e se o arquivo é consistente */
+    if(((cabecalho = ler_cabecalho_bin(bin)) != NULL)) {
+        if(existe_registros(cabecalho)) {                                                         // Checa se há registros de dados
+            RegistroPessoa *modelo = criar_registro("-2", "-2", -2, -2, "-2", "-2", "-2", "-2");  // Registro modelo de busca com valores defaults (indicam que o campo deve ser ignorado na busca)
+            buscar_registros(bin, modelo, &imprimir_registro_aux);                                // Imprime todos os registros do arquivo
             
             free(cabecalho);    // Apaga o cabeçalho da memória RAM
             cabecalho = NULL;   // Restaura o ponteiro para NULL
 
-            fclose(bin);        // Fecha o arquivo
             return true;        // Retorna com sucesso
         } else {
             printf("Registro inexistente.");    // Imprime mensagem de registro de dados inexistente
             free(cabecalho);                    // Apaga o cabeçalho da memória ram
             cabecalho = NULL;                   // Restaura o ponteiro para NULL
         }
-    } else {
-        printf("Falha no processamento do arquivo.");   // Imprime mensagem de erro na leitura do arquivo
-    }
-
-    if(bin != NULL)     // Se bin não é NULL, então o erro foi na leitura do cabeçalho ou dos registro de dados
-        fclose(bin);    // Portanto fechar o arquivo que ainda estará aberto
+    } 
+    else 
+        printf("Falha no processamento do arquivo.");
 
     return false;       // Retorna com erros
 }

@@ -117,6 +117,14 @@ RegistroPessoa* criar_registro(char *cidadeMae, char *cidadeBebe, int idNascimen
 
 
 /**
+ * Getter para o ID de nascimento do registro de dados.
+ */
+int registro_idNascimento(RegistroPessoa *rp) {
+    return rp->idNascimento;
+}
+
+
+/**
  * Verifica se um dado registro candidato apresenta valores semelhantes, em um ou mais campos, a um registro modelo (pseudo-registro).
  * 
  * @param modelo pseudo-registro que servirá como modelo para a comparação; campos que não serão comparados devem possuir um valor default pré-definido (-1).

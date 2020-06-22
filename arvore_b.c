@@ -6,8 +6,10 @@
 #include "arvore_b.h"
 #include "registro_pessoa.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+
+
+static const char LIXO_CHAR = '$';     // caractere que denota lixo de memória
 
 
 /**
@@ -87,45 +89,117 @@ static BTPagina* bt_criar_pagina()
 /**
  * @brief 
  * 
- * @param in_pathname 
- * @param out_pathname 
+ * @param chave 
+ * @param ponteiro 
+ * @return BTItem* 
+ */
+static BTItem* bt_criar_item(int chave, int ponteiro) 
+{
+    BTItem *item = malloc(sizeof(BTItem));
+    if(item != NULL) {
+        item->chave = chave;
+        item->ponteiro = ponteiro;
+    }
+
+    return item;
+}
+
+
+/**
+ * TO_DO
+ * 
+ * @param cab 
+ * @param bin 
+ */
+void bt_escrever_cabecalho(BTCabecalho *cab, FILE *bin) 
+{
+    fseek(bin, 0, SEEK_SET);                // move o ponteiro de escrita para o início do arquivo
+    fwrite(&cab->status, 1, 1, bin);        // status
+    fwrite(&cab->noRaiz, 4, 1, bin);        // nó raiz
+    fwrite(&cab->nroNiveis, 4, 1, bin);     // número de níveis
+    fwrite(&cab->proxRRN, 4, 1, bin);       // próximo RRN
+    fwrite(&cab->nroChaves, 4, 1, bin);     // número de chaves
+
+    for(int i = 0; i < 55; i++) {
+        fwrite(&LIXO_CHAR, 1, 1, bin);      // lixo de memória
+    }
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param bin 
+ * @return BTCabecalho* 
+ */
+BTCabecalho* bt_ler_cabecalho(FILE *bin) 
+{
+    BTCabecalho *cab = bt_criar_cabecalho();
+    if(cab != NULL) {
+        fseek(bin, 0, SEEK_SET);                                                 // move o ponteiro de escrita para o início do arquivo
+        if( (fread(&cab->status, 1, 1, bin) == 1) && (cab->status == '1') ) {    // lê o campo status e verifica-o
+            fread(&cab->noRaiz, 4, 1, bin);                                      // nó raiz
+            fread(&cab->nroNiveis, 4, 1, bin);                                   // número de níveis
+            fread(&cab->proxRRN, 4, 1, bin);                                     // número de níveis
+            fread(&cab->nroChaves, 4, 1, bin);                                   // número de chaves
+        }
+        else {
+            free(cab);
+            cab = NULL;
+        }
+    }
+
+    return cab;
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param dados_arq 
+ * @param indice_pathname 
  * @return true 
  * @return false 
  */
-bool bt_criar(char *in_pathname, char *out_pathname) 
+bool bt_criar(FILE *dados_arq, char *indice_pathname) 
 {
     /* Abrindo arquivos */
-    FILE *dados_arq, *indice_arq;      // ponteiros para os arquivos de entrada (arquivo de dados) e saída (índice árvore-B)
-    if( (dados_arq = fopen(in_pathname, "r")) == NULL )
+    FILE *indice_arq;      // ponteiro para de saída (índice árvore-B)
+    if( (indice_arq = fopen(indice_pathname, "wb")) == NULL ) 
         return false;
-    if( (indice_arq = fopen(out_pathname, "wb")) == NULL ) {
-        fclose(dados_arq);
-        return false;
-    }   
 
     /* Lendo quantidade de registros no arquivo de dados */
     RegistroCabecalho *dados_cab = ler_cabecalho_bin(dados_arq);
-    if(dados_cab == NULL)
+    if(dados_cab == NULL) {
+        fclose(dados_arq);
+        fclose(indice_arq);
         return false;
+    }
     int qnt_registros = qnt_registros_inseridos(dados_cab);     // quantidade de registros no arquivo de dados
-    free(dados_cab);
+    free(dados_cab);  dados_cab = NULL;
 
 
     /* Criando registro de cabeçalho do índice */
-    BTCabecalho *indice_cab = bt_criar_cabecalho();             // registro de cabeçalho do índice árvore-B
-    if(indice_cab == NULL)
-        return false;
+    BTCabecalho *indice_cab = bt_criar_cabecalho();             // criando o registro de cabeçalho do índice árvore-B
+    bt_escrever_cabecalho(indice_cab, indice_arq);              // escreve o cabeçalho com status '0'
 
     /* Inserindo itens no índice */
     for(int i = 0; i < qnt_registros; i++) {
         RegistroPessoa *reg = ler_registro_bin(dados_arq);
         if(reg != NULL) {   // verifica se o registro foi logicamente removido
-            //to_do: inserir item no índice
-            free(reg);
+            bt_inserir(registro_idNascimento(reg), i, indice_arq, indice_cab, false);
+            liberar_registro(&reg, true);
         }
     }
-    
-    //to_do: set status to '1'; write header
+
+    /* Escrevendo cabeçalho atualizado */
+    indice_cab->status = '1';
+    bt_escrever_cabecalho(indice_cab, indice_arq);
+    free(indice_cab);
+
+    /* Fechando arquivo de índice e retornando */
+    fclose(indice_arq);
+    return true;
 }
 
 
@@ -135,9 +209,9 @@ bool bt_criar(char *in_pathname, char *out_pathname)
  * @param indice_arq arquivo binário que contém o índice árvore-B.
  * @return a página/nó lida ou NULL caso não tenha sido possível alocar a memória necessária.
  */
-static BTPagina* ler_pagina(FILE* indice_arq, int rrn) 
+static BTPagina* bt_ler_pagina(FILE* indice_arq, int rrn) 
 {
-    BTPagina *p = malloc(sizeof(BTPagina));
+    BTPagina *p = calloc(1, sizeof(BTPagina));
     if(p != NULL) {
         fseek(indice_arq, (rrn + 1)*72, SEEK_SET);  // aponta o ponteiro de leitura do arquivo para a página que deseja-se ler
         fread(&p->nivel, 4, 1, indice_arq);         // lendo o nível do nó
@@ -165,7 +239,7 @@ static BTPagina* ler_pagina(FILE* indice_arq, int rrn)
 /**
  * Retorna true caso o nó/página seja folha e false no caso contrário.
  */
-static bool folha(BTPagina *p) {
+static bool bt_folha(BTPagina *p) {
     return p->filhos[0] == -1;
 }
 
@@ -173,7 +247,7 @@ static bool folha(BTPagina *p) {
 /**
  * Retorna true caso a página esteja cheia (não a espaço para a inserção de uma nova chave) e false no caso contrário.
  */
-static bool pagina_cheia(BTPagina *p) {
+static bool bt_pagina_cheia(BTPagina *p) {
     return p->n >= (BT_ORDEM - 1);
 }
 
@@ -181,7 +255,7 @@ static bool pagina_cheia(BTPagina *p) {
 /**
  * Dado um RRN, escreve uma página/nó no arquivo binário (i.e. escrita em disco).
  */
-static void escrever_pagina(FILE *bin, BTPagina *p, int rrn) {
+static void bt_escrever_pagina(FILE *bin, BTPagina *p, int rrn) {
     fseek(bin, (rrn + 1)*72, SEEK_SET);  // aponta o ponteiro de escrita do arquivo para o offset em que se deseja escrever
     fwrite(&p->nivel, 4, 1, bin);        // escrevendo nível
     fwrite(&p->n, 4, 1, bin);            // escrevendo número de chaves
@@ -207,8 +281,11 @@ static void escrever_pagina(FILE *bin, BTPagina *p, int rrn) {
 /**
  * Libera a RAM alocada pela página.
  */
-static void liberar_pagina(BTPagina **p) {
-    //to_do
+static void bt_liberar_pagina(BTPagina **p) {
+    for(int i = 0; i < (*p)->n; i++) 
+        free((*p)->itens[i]);
+
+    free(*p);
     (*p) = NULL;
 }
 
@@ -218,7 +295,7 @@ static void liberar_pagina(BTPagina **p) {
  * 
  * TO_DO
  */
-static void inserir_em_pagina_com_espaco(BTItem *itens[], int n, int filhos[], BTItem *item, int filho_dir) 
+static void bt_inserir_em_pagina_com_espaco(BTItem *itens[], int n, int filhos[], BTItem *item, int filho_dir) 
 {
     itens[n] = item;
     filhos[n + 1] = filho_dir;
@@ -248,7 +325,7 @@ static void inserir_em_pagina_com_espaco(BTItem *itens[], int n, int filhos[], B
  * @param promo_item item promovido.
  * @return nova página de disco.
  */
-static BTPagina* split(BTItem *novo_item, int novo_filho_dir, BTPagina *p, BTItem **promo_item) 
+static BTPagina* bt_split(BTItem *novo_item, int novo_filho_dir, BTPagina *p, BTItem **promo_item) 
 {
     /* Simulando página longa com 1 item e 1 filho a mais */
     BTItem *itens_long[BT_ORDEM];   // vetor de itens capaz de guardar 1 item a mais do que páginas normais
@@ -258,19 +335,23 @@ static BTPagina* split(BTItem *novo_item, int novo_filho_dir, BTPagina *p, BTIte
     memcpy(filhos_long, p->filhos, (BT_ORDEM + 1) * sizeof(int));
 
     /* Inserindo novo item na página longa */
-    inserir_em_pagina_com_espaco(itens_long, BT_ORDEM, filhos_long, novo_item, novo_filho_dir);
+    bt_inserir_em_pagina_com_espaco(itens_long, BT_ORDEM, filhos_long, novo_item, novo_filho_dir);
 
     /* Criando nova página */
     BTPagina *nova_p = bt_criar_pagina();
+    nova_p->nivel = p->nivel;
 
     /* Selecionando item a ser promovido */
     (*promo_item) = itens_long[BT_ORDEM/2];
     
     /* Copiando itens e ponteiros para filhos que precedem "promo_item" da página longa para a página "p" */
     // itens
+    p->n = 0;
     for(int i = 0; i < (BT_ORDEM - 1); i++) {
-        if(i < BT_ORDEM/2)
+        if(i < BT_ORDEM/2) {
             p->itens[i] = itens_long[i];
+            p->n++;
+        }
         else 
             p->itens[i] = NULL;
     }
@@ -284,8 +365,10 @@ static BTPagina* split(BTItem *novo_item, int novo_filho_dir, BTPagina *p, BTIte
 
     /* Copiando os itens e ponteiros para filhos que sucedem "promo_item" da página longa para a nova página */
     // itens
+    nova_p->n = 0;
     for(int i = 1; i < BT_ORDEM/2; i++) {
         nova_p->itens[i-1] = itens_long[i + BT_ORDEM/2];
+        nova_p->n++;
     }
     // filhos
     for(int i = 1; i < (BT_ORDEM/2 + 1); i++) {
@@ -316,9 +399,8 @@ static int bt_inserir_aux(int rrn_atual, BTItem *novo_item, BTItem **promo_item,
     BTPagina *p = NULL;                // página de disco atualmente examinada pela função
     BTPagina *nova_p = NULL;           // página de disco nova resultante do particionamento
     int pos = -1;                      // posição, na página p, no qual a chave do novo item ocorre ou deveria ocorrer
-    
-    static BTItem *P_B_ITEM = NULL;    // item promovido do nível inferior para ser inserido na página p
-    static int P_B_RRN = -1;           // RRN do filho à direita de P_B_ITEM, a ser inserido na página p
+    BTItem *P_B_ITEM = NULL;           // item promovido do nível inferior para ser inserido na página p
+    int P_B_RRN = -1;                  // RRN do filho à direita de P_B_ITEM, a ser inserido na página p
 
 
     /* Verificando se o nó pai é folha */
@@ -329,13 +411,13 @@ static int bt_inserir_aux(int rrn_atual, BTItem *novo_item, BTItem **promo_item,
     }
     /* Nó pai não é folha */
     else {
-        p = ler_pagina(bin, rrn_atual);
+        p = bt_ler_pagina(bin, rrn_atual);
 
         /* Procurando pela chave do item na página */
         pos = 0;
         while(pos < p->n && novo_item->chave >= p->itens[pos]->chave) {
             if(novo_item->chave == p->itens[pos]->chave) {
-                liberar_pagina(&p);
+                bt_liberar_pagina(&p);
                 return BT_ERRO;        // erro: chave duplicada
             }
             pos++;
@@ -350,16 +432,17 @@ static int bt_inserir_aux(int rrn_atual, BTItem *novo_item, BTItem **promo_item,
         }
         /* Há espaço na página (inserir sem particionamento) */
         else if(p->n < (BT_ORDEM - 1)) {
-            inserir_em_pagina_com_espaco(p->itens, p->n, p->filhos, P_B_ITEM, P_B_RRN);
+            bt_inserir_em_pagina_com_espaco(p->itens, p->n, p->filhos, P_B_ITEM, P_B_RRN);
             p->n++;
+            bt_escrever_pagina(bin, p, rrn_atual);
             return BT_SEM_PROMOCAO;
         }
         /* Inserção sem particionamento, indicando item promovido */
         else {
-            BTPagina *nova_p = split(P_B_ITEM, P_B_RRN, p, promo_item);
+            BTPagina *nova_p = bt_split(P_B_ITEM, P_B_RRN, p, promo_item);
 
-            escrever_pagina(bin, p, rrn_atual);
-            escrever_pagina(bin, nova_p, cab->proxRRN);
+            bt_escrever_pagina(bin, p, rrn_atual);
+            bt_escrever_pagina(bin, nova_p, cab->proxRRN);
 
             cab->proxRRN++;
             return BT_PROMOCAO;
@@ -367,4 +450,77 @@ static int bt_inserir_aux(int rrn_atual, BTItem *novo_item, BTItem **promo_item,
     }
 }   
 
+
+/**
+ * @brief 
+ * 
+ * @param chave 
+ * @param ponteiro 
+ * @param bin 
+ * @param cab 
+ * @param ler_cab 
+ * @return true 
+ * @return false 
+ */
+bool bt_inserir(int chave, int ponteiro, FILE *bin, BTCabecalho *cab, bool ler_cab) 
+{   
+    /* Lendo registro de cabeçalho (caso necessário) */
+    if(ler_cab) {
+        cab = bt_ler_cabecalho(bin);
+        if(cab == NULL)
+            return false;
+
+         /* Marcando o arquivo como inconsistente */
+        cab->status = '0';
+        bt_escrever_cabecalho(cab, bin);
+    }
+
+    /* Criando o item a ser adicionado */
+    BTItem *novo_item = bt_criar_item(chave, ponteiro); 
+
+    /* Criando página raiz e inserindo o item nela, caso o índice esteja vazio */
+    if(cab->nroChaves == 0) {
+        BTPagina *raiz = bt_criar_pagina();
+        raiz->itens[0] = novo_item;
+        raiz->n++;
+
+        bt_escrever_pagina(bin, raiz, cab->proxRRN);
+        bt_liberar_pagina(&raiz);
+        cab->noRaiz = 0;
+    }
+    /* Tentando inserir o item em uma página já existente */
+    else {
+        int rrn_raiz = cab->noRaiz;             // RRN do nó raiz
+        BTItem *promo_item = NULL;              // item promovido (caso haja)
+        int promo_filho_dir = -1;               // filho à direita do item promovido (caso haja)
+
+        if( bt_inserir_aux(rrn_raiz, novo_item, &promo_item, &promo_filho_dir, bin, cab) == BT_PROMOCAO ) {
+            BTPagina *raiz = bt_criar_pagina();
+            raiz->itens[0] = promo_item;
+            raiz->filhos[0] = rrn_raiz;
+            raiz->filhos[1] = promo_filho_dir;
+            raiz->nivel = cab->nroNiveis + 1;
+
+            bt_escrever_pagina(bin, raiz, cab->proxRRN);
+            bt_liberar_pagina(&raiz);
+
+            cab->noRaiz = cab->proxRRN;
+            cab->proxRRN++;
+            cab->nroNiveis++;
+        }
+    }
+
+    /* Atualizando número de chaves no cabeçalho */
+    cab->nroChaves++;
+
+    /* Escrevendo o cabeçalho atualizado (caso necessário) */
+    if(ler_cab) {
+        cab->status = '1';
+        bt_escrever_cabecalho(cab, bin);
+        free(cab);
+    }
+
+    /* Finalizando */
+    return true;
+}
 

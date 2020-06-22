@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include "csv_bin_manager.h"
 #include "registro_pessoa.h"
+#include "arvore_b.h"
 
 
 /**
@@ -187,7 +188,7 @@ void func5(char *bin_pathname, FILE *bin)
         qnt_registros_inseridos(cabecalho) - count, count, -1);         //atualiza no cabeçalho os campos "status", "numeroRegistrosInseridos" e "numeroRegistrosRemovidos"
     escrever_cabecalho(cabecalho, bin);                                 //escreve o cabeçalho atualizado no arquivo
 
-    free(cabecalho);                                                    // Apaga o registro de cabeçalho
+    free(cabecalho);                                                    //apaga o registro de cabeçalho
     cabecalho = NULL;
 
     fclose(bin);                                                        //necessário para a execução da binarioNaTela
@@ -205,7 +206,7 @@ void func5(char *bin_pathname, FILE *bin)
  * @param bin_pathname nome do arquivo binário; necessário para a chamada da função binarioNaTela.
  * @param bin arquivo binário a ser utilizado.
  */
-void func6(char *bin_pathname, FILE *bin) {
+void func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice) {
     int n;                                                  // Número de execuções da funçionalidade
     RegistroCabecalho *cabecalho = ler_cabecalho_bin(bin);  // Registro de cabeçalho
     RegistroPessoa *rp = NULL;                              // Registro de dados
@@ -350,4 +351,27 @@ void func7(char *bin_pathname, FILE *bin) {
     cabecalho = NULL;
     fclose(bin);                                            // Fecha o arquivo
     binarioNaTela(bin_pathname);                            // Chama o binarioNaTela()
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param bin 
+ * @param indice_pathname 
+ */
+void func8(FILE *bin, char *indice_pathname) {
+    bt_criar(bin, indice_pathname);
+    binarioNaTela(indice_pathname);
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param bin 
+ * @param indice 
+ */
+void func9(FILE *bin, FILE *indice) {
+    printf("NÃO IMPLEMENTADA!\n");
 }

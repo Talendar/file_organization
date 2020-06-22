@@ -22,6 +22,9 @@
     void remover_registro(FILE *bin);
     void remover_registro_aux(FILE *bin, RegistroPessoa *rp);
 
+    /* Consulta a registro de dados */
+    int registro_idNascimento(RegistroPessoa *rp);
+
     /* Funcionalidades adicionais de registros de dados */
     bool registros_similares(RegistroPessoa *modelo, RegistroPessoa *candidato);
     int buscar_registros(FILE *bin, RegistroPessoa *modelo, void (*func)(FILE *bin, RegistroPessoa *rp));

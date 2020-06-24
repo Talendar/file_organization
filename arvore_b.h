@@ -8,19 +8,29 @@
     #include <stdio.h>
 
     /* Constantes */
-    #define BT_ORDEM 6              // ordem da árvore-B
-    #define BT_ERRO -1              // valor de retorno que indica erro na execução da função
-    #define BT_SEM_PROMOCAO 0       // valor de retorno que indica que não houve promoção durante a inserção
-    #define BT_PROMOCAO 1           // valor de retorno que indica que houve promoção durante a inserção
+    #define MAX_CHAVES 5                // número máximo de chaves por página da árvore (ordem da árvore menos 1)
+    #define MIN_CHAVES 3                // número mínimo de chaves por página da árvore (teto de (MAX_CHAVES + 1)/2)
+    #define NIL -1                      // constante para indicar um valor nulo ou inválido
+    #define LIXO_CHAR '$'               // caractere que indica lixo de memória
+    #define PAGESIZE 72                 // tamanho, em bytes, de um registro da árvore-B
 
     /* Structs */
     typedef struct BTCabecalho BTCabecalho;
     typedef struct BTItem BTItem;
     typedef struct BTPagina BTPagina;
 
-    /* Criação */
-    bool bt_criar(FILE *dados_arq, char *indice_pathname);
+    /* Criação do índice */
+    bool bt_criar(FILE *dados, char *bt_pathname);
 
-    /* Inserção */
-    bool bt_inserir(int chave, int ponteiro, FILE *bin, BTCabecalho *cab, bool ler_cab);
+    /* Leitura */
+    BTPagina* bt_ler_pagina(int rrn, FILE *bt);
+    
+    /* Escrita */
+    void bt_escrever_cabecalho(BTCabecalho *cab, FILE *bt);
+    void bt_escrever_pagina(BTPagina *p, int rrn, FILE *bt);
+    void bt_nova_raiz(BTItem *item, int filho_esq, int filho_dir, FILE *bt, BTCabecalho *cab);
+
+    /* Outros */
+    BTPagina* bt_nova_pagina();
+    int bt_procurar_na_pagina(BTItem *item, BTPagina *p);
 #endif

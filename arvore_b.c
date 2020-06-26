@@ -390,8 +390,7 @@ static int bt_busca_aux(int *resultado, int rrn, int chave, FILE *bt) {
         }
         /* Conclui iteração da busca */
         numAcessos++;
-        free(p);
-        p = NULL;
+        bt_apagar_pagina(&p);
     }
 
     return numAcessos;
@@ -519,4 +518,26 @@ BTPagina* bt_ler_pagina(int rrn, FILE *bt)
     }
 
     return p;
+}
+
+/**
+ * Apaga a página apropriadamente e atribui NULL ao ponteiro
+ * 
+ * @param p Ponteiro para o ponteiro da página a ser apagada
+ */
+void bt_apagar_pagina(BTPagina **p) {
+    if(p == NULL || *p == NULL)
+        return;
+    
+    int i;
+
+    /* Apaga os itens da página */
+    for(i = 0; i < (*p)->n; i++) {
+        free((*p)->itens[i]);
+        (*p)->itens[i] = NULL;
+    }
+
+    /* Apaga a página */
+    free(*p);
+    *p = NULL;
 }

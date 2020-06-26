@@ -38,4 +38,5 @@
     /* Outros */
     BTPagina* bt_nova_pagina();
     int bt_procurar_na_pagina(BTItem *item, BTPagina *p);
+    void bt_apagar_pagina(BTPagina **p);
 #endif

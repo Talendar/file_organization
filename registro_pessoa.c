@@ -229,6 +229,53 @@ RegistroPessoa* registro_em(int rrn, FILE *bin) {
     return ler_registro_bin(bin);                                          //lê e retorna o registro no offset
 }
 
+/**
+ * Lê registros a partir do STDIN.
+ * Formato do STDIN: numeroInserções\n
+ *                   campo1 campo2 campo3...\n
+ *                   campo1 campo2 campo3...\n
+ *                   ...
+ * 
+ * @return Registro com os campos lidos do STDIN
+ */
+RegistroPessoa* ler_registro_stdin(void) {
+    RegistroPessoa *rp = NULL;                                                                      // Registro de dados
+    char cidadeMae[98], cidadeBebe[98], dataNascimento[11], sexoBebe, estadoMae[3], estadoBebe[3];  // Buffer de campos
+    int idNascimento, idadeMae;                                                                     // Buffer de campos
+    char buffer[12];                                                                                // Buffer para ler inteiro, char ou NULO
+
+    /* Leitura dos campos */
+    scan_quote_string(cidadeMae);
+    scan_quote_string(cidadeBebe);
+
+    scan_quote_string(buffer);
+    if(strcmp(buffer, "") == 0)
+        idNascimento = -1;
+    else
+        idNascimento = atoi(buffer);
+    
+    scan_quote_string(buffer);
+    if(strcmp(buffer, "") == 0)
+        idadeMae = -1;
+    else
+        idadeMae = atoi(buffer);
+    
+    scan_quote_string(dataNascimento);
+
+    scan_quote_string(buffer);
+    if(strcmp(buffer, "") == 0)
+        sexoBebe = '0';
+    else
+        sexoBebe = buffer[0];
+    
+    scan_quote_string(estadoMae);
+    scan_quote_string(estadoBebe);
+
+    /* Cria o registro */
+    rp = criar_registro(cidadeMae, cidadeBebe, idNascimento, idadeMae, dataNascimento, &sexoBebe, estadoMae, estadoBebe);
+
+    return rp;
+}
 
 /**
  * Libera a memória alocada pelo registro.

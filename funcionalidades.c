@@ -197,11 +197,11 @@ void func5(char *bin_pathname, FILE *bin)
 
 
 /**
- * Funcionalidade 6 do programa. Lê registros do STDOUT e os insere em um arquivo. Fecha o arquivo no fim da execucao.
- * Formato do STDOUT: numeroInserções\n
- *                    campo1 campo2 campo3...\n
- *                    campo1 campo2 campo3...\n
- *                    ...
+ * Funcionalidade 6 do programa. Lê registros do STDIN e os insere em um arquivo. Fecha o arquivo no fim da execucao.
+ * Formato do STDIN: numeroInserções\n
+ *                   campo1 campo2 campo3...\n
+ *                   campo1 campo2 campo3...\n
+ *                   ...
  * 
  * @param bin_pathname nome do arquivo binário; necessário para a chamada da função binarioNaTela.
  * @param bin arquivo binário a ser utilizado.
@@ -210,9 +210,6 @@ void func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice) {
     int n;                                                  // Número de execuções da funçionalidade
     RegistroCabecalho *cabecalho = ler_cabecalho_bin(bin);  // Registro de cabeçalho
     RegistroPessoa *rp = NULL;                              // Registro de dados
-    char cidadeMae[98], cidadeBebe[98], dataNascimento[11], sexoBebe, estadoMae[3], estadoBebe[3];  // Buffer de campos
-    int idNascimento, idadeMae;                                                                     // Buffer de campos
-    char buffer[12];                                 // Buffer para ler inteiro, char ou NULO
 
     /* Checa se o arquivo existe e está consistente */
     if(cabecalho == NULL) {
@@ -229,35 +226,8 @@ void func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice) {
 
     /* Executa n vezes a funcionalidade */
     while(n > 0) {
-        /* Leitura dos campos */
-        scan_quote_string(cidadeMae);
-        scan_quote_string(cidadeBebe);
-
-        scan_quote_string(buffer);
-        if(strcmp(buffer, "") == 0)
-            idNascimento = -1;
-        else
-            idNascimento = atoi(buffer);
-        
-        scan_quote_string(buffer);
-        if(strcmp(buffer, "") == 0)
-            idadeMae = -1;
-        else
-            idadeMae = atoi(buffer);
-        
-        scan_quote_string(dataNascimento);
-
-        scan_quote_string(buffer);
-        if(strcmp(buffer, "") == 0)
-            sexoBebe = '0';
-        else
-            sexoBebe = buffer[0];
-        
-        scan_quote_string(estadoMae);
-        scan_quote_string(estadoBebe);
-
-        /* Cria o registro */
-        rp = criar_registro(cidadeMae, cidadeBebe, idNascimento, idadeMae, dataNascimento, &sexoBebe, estadoMae, estadoBebe);
+        /* Lê o registro */
+        rp = ler_registro_stdin();
         if(rp == NULL) {
             printf("Falha no processamento do arquivo.");           // Mensagem de erro
             atualizar_cabecalho(cabecalho, '1', -1, -1, -1, -1);    // Atualiza o status

@@ -391,7 +391,7 @@ void func9(FILE *bin, FILE *indice) {
             imprimir_registro_formatado(rp);
             liberar_registro(&rp, true);
             /* Imprime o número de páginas da árvore-B acessadas */
-            printf("Quantidade de paginas da arvore-B acessadas: %d", numAcessos);
+            printf("Quantidade de paginas da arvore-B acessadas: %d\n", numAcessos);
         } else {
             /* Mensagem de registro não encontrado */
             printf("Registro inexistente.");

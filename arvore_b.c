@@ -375,11 +375,17 @@ static int bt_busca_aux(int *resultado, int rrn, int chave, FILE *bt) {
     if(p != NULL) {
         /* Busca pela chave */
         for(i = 0; i < p->n; i++) {
-            if(p->itens[i]->chave == rrn) {             // Se achar a chave
+            if(p->itens[i]->chave == chave) {             // Se achar a chave
                 *resultado = p->itens[i]->ponteiro;
-            } else if(p->itens[i]->chave > rrn) {       // Se a chave estiver em um descendente
-                if(p->filhos[i] != NIL)                                     // Se o descendente existe
-                    numAcessos = bt_busca_aux(p, p->filhos[i], chave, bt);  // Busca no nó descendente
+                break;
+            } else if(p->itens[i]->chave > chave) {       // Se a chave estiver em um descendente
+                if(p->filhos[i] != NIL)                                                 // Se o descendente existe
+                    numAcessos = bt_busca_aux(resultado, p->filhos[i], chave, bt);      // Busca no nó descendente
+                break;
+            } else if(i == p->n-1) {
+                if(p->filhos[i+1] != NIL)                                               // Se o descendente existe
+                    numAcessos = bt_busca_aux(resultado, p->filhos[i+1], chave, bt);    // Busca no nó descendente
+                break;
             }
         }
         /* Conclui iteração da busca */
@@ -460,17 +466,17 @@ BTCabecalho *bt_ler_cabecalho(FILE *bt)
             fseek(bt, 0, SEEK_SET);     // Coloca o ponteiro na posição certa
         
         /* Lê o status e checa a consistencia do arquivo */
-        fread(c->status, 1, 1, bt);
+        fread(&c->status, 1, 1, bt);
         if(c->status != '1') {          // Caso não seja consistente
             free(c);                    // Apaga o cabeçalho criado
             c = NULL;
             return NULL;                // Retorna erro
         }
         /* Lê os outros campos do cabeçalho */
-        fread(c->noRaiz, 4, 1, bt);
-        fread(c->nroNiveis, 4, 1, bt);
-        fread(c->proxRRN, 4, 1, bt);
-        fread(c->nroChaves, 4, 1, bt);
+        fread(&c->noRaiz, 4, 1, bt);
+        fread(&c->nroNiveis, 4, 1, bt);
+        fread(&c->proxRRN, 4, 1, bt);
+        fread(&c->nroChaves, 4, 1, bt);
     }
 
     return c;

@@ -291,11 +291,11 @@ void func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice) {
 
 
 /**
- * Funcionalidade 7 do programa. Atualiza os registros especificados no STDOUT. Fecha o arquivo no fim da execucao.
- * Formato do STDOUT: numeroAtualizações\n
- *                    RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
- *                    RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
- *                    ...
+ * Funcionalidade 7 do programa. Atualiza os registros especificados no STDIN. Fecha o arquivo no fim da execucao.
+ * Formato do STDIN: numeroAtualizações\n
+ *                   RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
+ *                   RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
+ *                   ...
  * 
  * @param bin_pathname nome do arquivo binário; necessário para a chamada da função binarioNaTela.
  * @param bin arquivo binário a ser utilizado.
@@ -367,11 +367,36 @@ void func8(FILE *bin, char *indice_pathname) {
 
 
 /**
- * @brief 
+ * @brief Funcionalidade 9 do programa. Recupera um registro com base em uma chave de busca e imprime.
+ * Formato do STDIN: idNascimento valor
  * 
- * @param bin 
- * @param indice 
+ * @param bin arquivo contendo os registros de dados.
+ * @param indice arquivo contendo a árvore-B.
  */
 void func9(FILE *bin, FILE *indice) {
-    printf("NÃO IMPLEMENTADA!\n");
+    char tipoChave[20];
+    int valor, numAcessos, rrn;
+    RegistroPessoa *rp = NULL;
+
+    /* Lê a entrada do usuário */
+    scanf(" %19s", tipoChave);
+    scanf("%d", &valor);
+
+    /* Realiza a busca */
+    numAcessos = bt_busca(&rrn, valor, indice);
+    if(numAcessos != NIL) {
+        if(rrn != NIL) {
+            /* Lê o registro encontrado e imprime */
+            rp = registro_em(rrn, bin);
+            imprimir_registro_formatado(rp);
+            liberar_registro(&rp, true);
+            /* Imprime o número de páginas da árvore-B acessadas */
+            printf("Quantidade de paginas da arvore-B acessadas: %d", numAcessos);
+        } else {
+            /* Mensagem de registro não encontrado */
+            printf("Registro inexistente.");
+        }
+    } else {
+        printf("Falha no processamento do arquivo.");   // Erro: falha em alocação
+    }
 }

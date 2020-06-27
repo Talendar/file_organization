@@ -37,6 +37,7 @@
 
     /* Outros */
     BTPagina* bt_nova_pagina();
+    BTItem *bt_item_criar(int chave, int ponteiro);
     int bt_procurar_na_pagina(BTItem *item, BTPagina *p);
     void bt_apagar_pagina(BTPagina **p);
 #endif

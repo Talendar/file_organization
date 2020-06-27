@@ -6,6 +6,7 @@
 #include "registro_pessoa.h"
 #include <stdlib.h>
 #include <string.h>
+#include "csv_bin_manager.h"
 
 
 static void fwrite_aux(char *campo, int n, FILE *bin);

@@ -89,6 +89,7 @@ bool bt_criar(FILE *dados, char *bt_pathname)
                     if(promocao)
                         bt_nova_raiz(&promo_item, cab.noRaiz, promo_rrn, bt, &cab);      // criando nova raiz (árvore aumentando de nível)
                 }
+                liberar_registro(&rp, true);
             }
         }
     }
@@ -96,6 +97,7 @@ bool bt_criar(FILE *dados, char *bt_pathname)
     /* Escrevendo cabeçalho atualizado */
     cab.status = '1';
     bt_escrever_cabecalho(&cab, bt);
+    fclose(bt);
     return true;
 }
 
@@ -259,8 +261,10 @@ static BTPagina* bt_split(BTItem *item, int filho_dir, BTPagina *p_antiga, BTIte
         p_nova->filhos[i] = temp_filhos[i + 1 + MIN_CHAVES];
 
         // marcando a segunda metade da página antiga como vazia
-        p_antiga->itens[i + MIN_CHAVES] = NULL;
-        p_antiga->filhos[i + 1 + MIN_CHAVES] = NIL;
+        if(i < MIN_CHAVES - 1) {
+            p_antiga->itens[i + MIN_CHAVES] = NULL;
+            p_antiga->filhos[i + 1 + MIN_CHAVES] = NIL;
+        }
     }
     p_antiga->filhos[MIN_CHAVES] = temp_filhos[MIN_CHAVES];
     p_nova->filhos[MIN_CHAVES] = temp_filhos[i + 1 + MIN_CHAVES];
@@ -365,7 +369,8 @@ int bt_busca(int *resultado, int chave, FILE *bt)
  * @param bt Arquivo de índices com a árvore-B
  * @return Número de páginas acessadas
  */
-static int bt_busca_aux(int *resultado, int rrn, int chave, FILE *bt) {
+static int bt_busca_aux(int *resultado, int rrn, int chave, FILE *bt)
+{
     if(rrn < 0)
         return 0;
     
@@ -417,6 +422,25 @@ BTPagina* bt_nova_pagina()
     }
 
     return pag;
+}
+
+
+/**
+ * @brief Cria um item da árvore-B
+ * 
+ * @param chave Chave do item
+ * @param ponteiro Ponteiro para o próximo nó da árvore-B
+ * @return Item criado
+ */
+BTItem *bt_item_criar(int chave, int ponteiro)
+{
+    BTItem *novoItem = (BTItem *) malloc(sizeof(BTItem));
+    if(novoItem != NULL) {
+        novoItem->chave = chave;
+        novoItem->ponteiro = ponteiro;
+    }
+
+    return novoItem;
 }
 
 

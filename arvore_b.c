@@ -12,7 +12,7 @@
 static bool bt_inserir_aux(int rrn, BTItem *item, int *promo_filho_dir, BTItem *promo_item, FILE *bt, BTCabecalho *cab);
 static void bt_inserir_na_pagina(BTItem *item, int filho_dir, BTPagina *p);
 static BTPagina* bt_split(BTItem *item, int filho_dir, BTPagina *p_antiga, BTItem *promo_item, int *promo_filho_dir, FILE *bt, BTCabecalho *cab);
-
+static int bt_busca_aux(int *resultado, int rrn, int chave, FILE *bt);
 
 /**
  * Estrutura de um registro de cabeçalho de uma árvore-B. 
@@ -89,6 +89,7 @@ bool bt_criar(FILE *dados, char *bt_pathname)
                     if(promocao)
                         bt_nova_raiz(&promo_item, cab.noRaiz, promo_rrn, bt, &cab);      // criando nova raiz (árvore aumentando de nível)
                 }
+                liberar_registro(&rp, true);
             }
         }
     }
@@ -96,6 +97,7 @@ bool bt_criar(FILE *dados, char *bt_pathname)
     /* Escrevendo cabeçalho atualizado */
     cab.status = '1';
     bt_escrever_cabecalho(&cab, bt);
+    fclose(bt);
     return true;
 }
 
@@ -259,8 +261,10 @@ static BTPagina* bt_split(BTItem *item, int filho_dir, BTPagina *p_antiga, BTIte
         p_nova->filhos[i] = temp_filhos[i + 1 + MIN_CHAVES];
 
         // marcando a segunda metade da página antiga como vazia
-        p_antiga->itens[i + MIN_CHAVES] = NULL;
-        p_antiga->filhos[i + 1 + MIN_CHAVES] = NIL;
+        if(i < MIN_CHAVES - 1) {
+            p_antiga->itens[i + MIN_CHAVES] = NULL;
+            p_antiga->filhos[i + 1 + MIN_CHAVES] = NIL;
+        }
     }
     p_antiga->filhos[MIN_CHAVES] = temp_filhos[MIN_CHAVES];
     p_nova->filhos[MIN_CHAVES] = temp_filhos[i + 1 + MIN_CHAVES];
@@ -328,6 +332,77 @@ void bt_escrever_pagina(BTPagina *p, int rrn, FILE *bt) {
 
 
 /**
+ * @brief Realiza busca na árvore-B a partir de uma chave
+ * 
+ * @param resultado RRN obtido pela busca
+ * @param chave Valor da chave
+ * @param bt Arquivo de índices com a árvore-B
+ * @return Número de páginas acessadas
+ */
+int bt_busca(int *resultado, int chave, FILE *bt)
+{
+    if(resultado == NULL)
+        return NIL;
+
+    int raiz;
+    *resultado = NIL;
+    BTCabecalho *cabecalho = bt_ler_cabecalho(bt);
+    if(cabecalho == NULL)
+        return NIL;
+
+    /* Salva o RRN do nó raiz e apaga o cabecalho lido */
+    raiz = cabecalho->noRaiz;
+    free(cabecalho);
+    cabecalho = NULL;
+
+    /* Realiza a busca recursiva */
+    return bt_busca_aux(resultado, raiz, chave, bt);
+}
+
+
+/**
+ * Função auxiliar de busca recursiva
+ * 
+ * @param resultado RRN encontrado na busca
+ * @param rrn RRN da página a ser acessada
+ * @param chave Valor da chave
+ * @param bt Arquivo de índices com a árvore-B
+ * @return Número de páginas acessadas
+ */
+static int bt_busca_aux(int *resultado, int rrn, int chave, FILE *bt)
+{
+    if(rrn < 0)
+        return 0;
+    
+    int i, numAcessos = 0;
+    BTPagina *p = bt_ler_pagina(rrn, bt);
+
+    if(p != NULL) {
+        /* Busca pela chave */
+        for(i = 0; i < p->n; i++) {
+            if(p->itens[i]->chave == chave) {             // Se achar a chave
+                *resultado = p->itens[i]->ponteiro;
+                break;
+            } else if(p->itens[i]->chave > chave) {       // Se a chave estiver em um descendente
+                if(p->filhos[i] != NIL)                                                 // Se o descendente existe
+                    numAcessos = bt_busca_aux(resultado, p->filhos[i], chave, bt);      // Busca no nó descendente
+                break;
+            } else if(i == p->n-1) {
+                if(p->filhos[i+1] != NIL)                                               // Se o descendente existe
+                    numAcessos = bt_busca_aux(resultado, p->filhos[i+1], chave, bt);    // Busca no nó descendente
+                break;
+            }
+        }
+        /* Conclui iteração da busca */
+        numAcessos++;
+        bt_apagar_pagina(&p);
+    }
+
+    return numAcessos;
+}
+
+
+/**
  * @brief 
  * 
  * @return BTPagina* 
@@ -347,6 +422,25 @@ BTPagina* bt_nova_pagina()
     }
 
     return pag;
+}
+
+
+/**
+ * @brief Cria um item da árvore-B
+ * 
+ * @param chave Chave do item
+ * @param ponteiro Ponteiro para o próximo nó da árvore-B
+ * @return Item criado
+ */
+BTItem *bt_item_criar(int chave, int ponteiro)
+{
+    BTItem *novoItem = (BTItem *) malloc(sizeof(BTItem));
+    if(novoItem != NULL) {
+        novoItem->chave = chave;
+        novoItem->ponteiro = ponteiro;
+    }
+
+    return novoItem;
 }
 
 
@@ -381,6 +475,38 @@ void bt_nova_raiz(BTItem *item, int filho_esq, int filho_dir, FILE *bt, BTCabeca
 
 
 /**
+ * Lê o cabeçalho do arquivo com a árvore-B
+ * 
+ * @param bt Arquivo com a árvore-B
+ * @return Cabeçalho lido ou NULL caso ocorra algum erro
+ */
+BTCabecalho *bt_ler_cabecalho(FILE *bt)
+{
+    BTCabecalho *c = (BTCabecalho *) malloc(sizeof(BTCabecalho));
+    if(c != NULL) {
+        /* Checa se o ponteiro de leitura do arquivo está na posição correta */
+        if(ftell(bt) != 0)
+            fseek(bt, 0, SEEK_SET);     // Coloca o ponteiro na posição certa
+        
+        /* Lê o status e checa a consistencia do arquivo */
+        fread(&c->status, 1, 1, bt);
+        if(c->status != '1') {          // Caso não seja consistente
+            free(c);                    // Apaga o cabeçalho criado
+            c = NULL;
+            return NULL;                // Retorna erro
+        }
+        /* Lê os outros campos do cabeçalho */
+        fread(&c->noRaiz, 4, 1, bt);
+        fread(&c->nroNiveis, 4, 1, bt);
+        fread(&c->proxRRN, 4, 1, bt);
+        fread(&c->nroChaves, 4, 1, bt);
+    }
+
+    return c;
+}
+
+
+/**
  * Lê a página/nó no RRN fornecido do arquivo de índice árvore-B.
  * 
  * @param bt arquivo binário que contém o índice árvore-B.
@@ -390,7 +516,7 @@ BTPagina* bt_ler_pagina(int rrn, FILE *bt)
 {
     BTPagina *p = bt_nova_pagina();
     if(p != NULL) {
-        fseek(bt, (rrn + 1)*PAGESIZE, SEEK_SET);            // aponta o ponteiro de leitura do arquivo para a página que deseja-se ler
+        fseek(bt, (rrn * PAGESIZE) + HEADERSIZE, SEEK_SET); // aponta o ponteiro de leitura do arquivo para a página que deseja-se ler
         fread(&p->nivel, 4, 1, bt);                         // lendo o nível do nó
         fread(&p->n, 4, 1, bt);                             // lendo o número de chaves na página
 
@@ -416,4 +542,26 @@ BTPagina* bt_ler_pagina(int rrn, FILE *bt)
     }
 
     return p;
+}
+
+/**
+ * Apaga a página apropriadamente e atribui NULL ao ponteiro
+ * 
+ * @param p Ponteiro para o ponteiro da página a ser apagada
+ */
+void bt_apagar_pagina(BTPagina **p) {
+    if(p == NULL || *p == NULL)
+        return;
+    
+    int i;
+
+    /* Apaga os itens da página */
+    for(i = 0; i < (*p)->n; i++) {
+        free((*p)->itens[i]);
+        (*p)->itens[i] = NULL;
+    }
+
+    /* Apaga a página */
+    free(*p);
+    *p = NULL;
 }

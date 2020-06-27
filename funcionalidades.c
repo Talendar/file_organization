@@ -36,40 +36,6 @@ void func2(FILE *bin) {
 }
 
 
-/*
-*	Use esta função para ler um campo string delimitado entre aspas (").
-*	Chame ela na hora que for ler tal campo. Por exemplo:
-*
-*	A entrada está da seguinte forma:
-*		nomeDoCampo "MARIA DA SILVA"
-*
-*	Para ler isso para as strings já alocadas str1 e str2 do seu programa, você faz:
-*		scanf("%s", str1); // Vai salvar nomeDoCampo em str1
-*		scan_quote_string(str2); // Vai salvar MARIA DA SILVA em str2 (sem as aspas)
-*
-*/
-static void scan_quote_string(char *str) {
-	char R;
-
-	while((R = getchar()) != EOF && isspace(R)); // ignorar espaços, \r, \n...
-
-	if(R == 'N' || R == 'n') {                   // campo NULO
-		getchar(); getchar(); getchar();         // ignorar o "ULO" de NULO.
-		strcpy(str, "");                         // copia string vazia
-	} else if(R == '\"') {
-		if(scanf("%[^\"]", str) != 1) {          // ler até o fechamento das aspas
-			strcpy(str, "");
-		}
-		getchar();        // ignorar aspas fechando
-	} else if(R != EOF){  // vc tá tentando ler uma string que não tá entre aspas! Fazer leitura normal %s então, pois deve ser algum inteiro ou algo assim...
-		str[0] = R;
-		scanf("%s", &str[1]);
-	} else {            // EOF
-		strcpy(str, "");
-	}
-}
-
-
 /**
  * Lê, do STDOUT, campos de interesse de um registro a partir de uma entrada do tipo:
  *      m1 nomeCampo11 valorCampo11 [nomeCampo12 valorCampo12 [...
@@ -197,11 +163,11 @@ void func5(char *bin_pathname, FILE *bin)
 
 
 /**
- * Funcionalidade 6 do programa. Lê registros do STDOUT e os insere em um arquivo. Fecha o arquivo no fim da execucao.
- * Formato do STDOUT: numeroInserções\n
- *                    campo1 campo2 campo3...\n
- *                    campo1 campo2 campo3...\n
- *                    ...
+ * Funcionalidade 6 do programa. Lê registros do STDIN e os insere em um arquivo. Fecha o arquivo no fim da execucao.
+ * Formato do STDIN: numeroInserções\n
+ *                   campo1 campo2 campo3...\n
+ *                   campo1 campo2 campo3...\n
+ *                   ...
  * 
  * @param bin_pathname nome do arquivo binário; necessário para a chamada da função binarioNaTela.
  * @param bin arquivo binário a ser utilizado.
@@ -210,9 +176,6 @@ void func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice) {
     int n;                                                  // Número de execuções da funçionalidade
     RegistroCabecalho *cabecalho = ler_cabecalho_bin(bin);  // Registro de cabeçalho
     RegistroPessoa *rp = NULL;                              // Registro de dados
-    char cidadeMae[98], cidadeBebe[98], dataNascimento[11], sexoBebe, estadoMae[3], estadoBebe[3];  // Buffer de campos
-    int idNascimento, idadeMae;                                                                     // Buffer de campos
-    char buffer[12];                                 // Buffer para ler inteiro, char ou NULO
 
     /* Checa se o arquivo existe e está consistente */
     if(cabecalho == NULL) {
@@ -229,35 +192,8 @@ void func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice) {
 
     /* Executa n vezes a funcionalidade */
     while(n > 0) {
-        /* Leitura dos campos */
-        scan_quote_string(cidadeMae);
-        scan_quote_string(cidadeBebe);
-
-        scan_quote_string(buffer);
-        if(strcmp(buffer, "") == 0)
-            idNascimento = -1;
-        else
-            idNascimento = atoi(buffer);
-        
-        scan_quote_string(buffer);
-        if(strcmp(buffer, "") == 0)
-            idadeMae = -1;
-        else
-            idadeMae = atoi(buffer);
-        
-        scan_quote_string(dataNascimento);
-
-        scan_quote_string(buffer);
-        if(strcmp(buffer, "") == 0)
-            sexoBebe = '0';
-        else
-            sexoBebe = buffer[0];
-        
-        scan_quote_string(estadoMae);
-        scan_quote_string(estadoBebe);
-
-        /* Cria o registro */
-        rp = criar_registro(cidadeMae, cidadeBebe, idNascimento, idadeMae, dataNascimento, &sexoBebe, estadoMae, estadoBebe);
+        /* Lê o registro */
+        rp = ler_registro_stdin();
         if(rp == NULL) {
             printf("Falha no processamento do arquivo.");           // Mensagem de erro
             atualizar_cabecalho(cabecalho, '1', -1, -1, -1, -1);    // Atualiza o status
@@ -291,11 +227,11 @@ void func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice) {
 
 
 /**
- * Funcionalidade 7 do programa. Atualiza os registros especificados no STDOUT. Fecha o arquivo no fim da execucao.
- * Formato do STDOUT: numeroAtualizações\n
- *                    RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
- *                    RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
- *                    ...
+ * Funcionalidade 7 do programa. Atualiza os registros especificados no STDIN. Fecha o arquivo no fim da execucao.
+ * Formato do STDIN: numeroAtualizações\n
+ *                   RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
+ *                   RRN numCampos nomeCampo valorCampo [nomeCampo valorCampo [...\n
+ *                   ...
  * 
  * @param bin_pathname nome do arquivo binário; necessário para a chamada da função binarioNaTela.
  * @param bin arquivo binário a ser utilizado.
@@ -367,11 +303,36 @@ void func8(FILE *bin, char *indice_pathname) {
 
 
 /**
- * @brief 
+ * @brief Funcionalidade 9 do programa. Recupera um registro com base em uma chave de busca e imprime.
+ * Formato do STDIN: idNascimento valor
  * 
- * @param bin 
- * @param indice 
+ * @param bin arquivo contendo os registros de dados.
+ * @param indice arquivo contendo a árvore-B.
  */
 void func9(FILE *bin, FILE *indice) {
-    printf("NÃO IMPLEMENTADA!\n");
+    char tipoChave[20];
+    int valor, numAcessos, rrn;
+    RegistroPessoa *rp = NULL;
+
+    /* Lê a entrada do usuário */
+    scanf(" %19s", tipoChave);
+    scanf("%d", &valor);
+
+    /* Realiza a busca */
+    numAcessos = bt_busca(&rrn, valor, indice);
+    if(numAcessos != NIL) {
+        if(rrn != NIL) {
+            /* Lê o registro encontrado e imprime */
+            rp = registro_em(rrn, bin);
+            imprimir_registro_formatado(rp);
+            liberar_registro(&rp, true);
+            /* Imprime o número de páginas da árvore-B acessadas */
+            printf("Quantidade de paginas da arvore-B acessadas: %d\n", numAcessos);
+        } else {
+            /* Mensagem de registro não encontrado */
+            printf("Registro inexistente.");
+        }
+    } else {
+        printf("Falha no processamento do arquivo.");   // Erro: falha em alocação
+    }
 }

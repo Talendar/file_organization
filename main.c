@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include "funcionalidades.h"
+#include "csv_bin_manager.h"
 
 
 /**
@@ -19,46 +20,75 @@ int main(void)
     int opt = -1; scanf(" %d", &opt);   // Buffer de entrada do menu
     char bin_pathname[64];              // Nome do arquivo binário
 
-    //funcionalidade 1
+    // funcionalidade 1
     if(opt == 1) {
         char csv_pathname[64];                              
         scanf(" %s %s", csv_pathname, bin_pathname);        // Lê o nome dos arquivos binário e csv
         func1(csv_pathname, bin_pathname);                  // Executa a funcionalidade 1
     }
-    //outras funcionalidades
+    // outras funcionalidades
     else {
         scanf(" %s", bin_pathname);                         // Lê o nome do arquivo binário
         FILE *bin = fopen(bin_pathname, "rb+");             // Abre o arquivo binário
-        
+
         if(bin != NULL) {
-            switch(opt) {
-            case 2: 
-                func2(bin);                                 // Executa a funcionalidade 2
-                break;
-            case 3:
-                func3(bin);                                 // Executa a funcionalidade 3
-                break;
-            case 4:
-                func4(bin);                                 // Executa a funcionalidade 4
-                break;
-            case 5:
-                func5(bin_pathname, bin);                   // Executa a funcionalidade 5
-                bin = NULL;                                 // Necessário para que não se tente fechar o arquivo novamente (ele já foi fechado na func5)
-                break;
-            case 6:
-                func6(bin_pathname, bin);                   // Executa a funcionalidade 6
-                bin = NULL;
-                break;
-            case 7:
-                func7(bin_pathname, bin);                   // Executa a funcionalidade 7
-                bin = NULL;
-                break;
+            /* Funcionalidade 2 */
+            if(opt == 2)
+                func2(bin);
+            /* Funcionalidade 3 */
+            else if(opt == 3)
+                func3(bin);
+            /* Funcionalidade 4 */
+            else if(opt == 4)
+                func4(bin);
+            /* Funcionalidades 5 e 7 */
+            else if(opt == 5 || opt == 7) {
+                // funcionalidade 5
+                if(opt == 5)    
+                    func5(bin_pathname, bin);
+                // funcionalidade 7
+                else 
+                    func7(bin_pathname, bin);
+                
+                bin = NULL;     // Necessário para que não se tente fechar o arquivo novamente (ele já foi fechado em uma das func anteriores)
+            }
+            /* Funcionalidades 6, 8, 9 e 10*/
+            else if(opt == 6 || opt == 8 || opt == 9 || opt == 10) {
+                char indice_pathname[64];  scanf(" %s", indice_pathname);    // Lê o nome do arquivo de índice
+                
+                // funcionalidade 8
+                if(opt == 8) 
+                    func8(bin, indice_pathname);
+                // funcionalidades 6, 9 e 10
+                else {
+                    FILE *indice = fopen(indice_pathname, "rb+");
+                    if(indice != NULL) {
+                        // funcionalidade 6 e 10
+                        if(opt == 6 || opt == 10) {
+                            if(func6(bin_pathname, bin, indice_pathname, indice)) {
+                                // binario na tela caso não tenha havido falhas
+                                if(opt == 6)
+                                    binarioNaTela(bin_pathname);            // binarioNaTela para o arquivo de dados
+                                else 
+                                    binarioNaTela(indice_pathname);         // binarioNaTela para o arquivo de índice
+                            }
+                            bin = NULL;               
+                        }
+                        // funcionalide 9
+                        else {
+                            func9(bin, indice);
+                            fclose(indice);
+                        }
+                    }
+                    else 
+                        printf("Falha no processamento do arquivo.");   // Erro: arquivo de índice não encontrado
+                } 
             }
             if(bin != NULL)
                 fclose(bin);
         }
         else 
-            printf("Falha no processamento do arquivo.");   // Erro: arquivo não encontrado
+            printf("Falha no processamento do arquivo.");   // Erro: arquivo de dados não encontrado
     }
 
     return 0;

@@ -17,10 +17,14 @@
     RegistroPessoa* criar_registro(char *cidadeMae, char *cidadeBebe, int idNascimento, int idadeMae, char dataNascimento[11], char sexoBebe[2], char estadoMae[3], char estadoBebe[3]);
     RegistroPessoa* ler_registro_bin(FILE *bin);
     RegistroPessoa* registro_em(int rrn, FILE *bin);
+    RegistroPessoa* ler_registro_stdin(void);
 
     /* Remoção de registros de dados */
     void remover_registro(FILE *bin);
     void remover_registro_aux(FILE *bin, RegistroPessoa *rp);
+
+    /* Consulta a registro de dados */
+    int registro_idNascimento(RegistroPessoa *rp);
 
     /* Funcionalidades adicionais de registros de dados */
     bool registros_similares(RegistroPessoa *modelo, RegistroPessoa *candidato);

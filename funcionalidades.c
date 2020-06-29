@@ -98,8 +98,14 @@ static RegistroPessoa* ler_campos() {
  */
 void func3(FILE *bin) 
 {
-    fseek(bin, 128, SEEK_SET);                  //avança o ponteiro do arquivo para o início do primeiro registro (pula o cabeçalho)
+    RegistroCabecalho *cabecalho = ler_cabecalho_bin(bin);
     int encontrados = 0;
+    if(cabecalho == NULL) {
+        printf("Falha no processamento do arquivo.");
+        return;
+    }
+    free(cabecalho);
+    cabecalho = NULL;
 
     RegistroPessoa *wanted = ler_campos();      //recebe um pseudo-registro com valores dos parâmetros de busca
     encontrados = buscar_registros(bin, wanted, &imprimir_registro_aux);
@@ -139,6 +145,11 @@ void func5(char *bin_pathname, FILE *bin)
 {
     int n;  scanf(" %d", &n);                                           //lê número de remoções
     RegistroCabecalho *cabecalho = ler_cabecalho_bin(bin);
+    if(cabecalho == NULL) {
+        printf("Falha no processamento do arquivo.");
+        fclose(bin);
+        return;
+    }
 
     atualizar_cabecalho(cabecalho, '0', -1, -1, -1, -1);                //marca no cabeçalho que o arquivo está inconsistente
     int count = qnt_registros_removidos(cabecalho);
@@ -323,29 +334,40 @@ void func8(FILE *bin, char *indice_pathname) {
  * @param indice arquivo contendo a árvore-B.
  */
 void func9(FILE *bin, FILE *indice) {
-    char tipoChave[20];
-    int valor, numAcessos, rrn;
-    RegistroPessoa *rp = NULL;
+    char tipoChave[20];                                 // Guarda o tipo da chave recebido pela entrada
+    int valor;                                          // Guarda a chave recebida pela entrada
+    int numAcessos, rrn;                                // Guarda os resultados da busca pela chave
+    RegistroCabecalho *cab = ler_cabecalho_bin(bin);    // Guarda o cabeçalho do arquivo de dados
+    RegistroPessoa *rp = NULL;                          // Guarda o registro de dados encontrado da busca
+
+    /* Testa a leitura do cabeçalho do arquivo de dados */
+    if(cab == NULL) {
+        printf("Falha no processamento do arquivo.");
+        return;
+    }
 
     /* Lê a entrada do usuário */
-    scanf(" %19s", tipoChave);
-    scanf("%d", &valor);
+    scanf(" %19s", tipoChave);                          // Lê o tipo de chave
+    scanf("%d", &valor);                                // Lê o valor da chave
 
     /* Realiza a busca */
-    if(!bt_indice_vazio(indice)) {
-        numAcessos = bt_busca(&rrn, valor, indice);
-        if(rrn != NIL) {
-            /* Lê o registro encontrado e imprime */
-            rp = registro_em(rrn, bin);
-            imprimir_registro_formatado(rp);
-            liberar_registro(&rp, true);
-            /* Imprime o número de páginas da árvore-B acessadas */
-            printf("Quantidade de paginas da arvore-B acessadas: %d\n", numAcessos);
-        } else {
-            /* Mensagem de registro não encontrado */
-            printf("Registro inexistente.");
-        }
-    }
-    else 
+    numAcessos = bt_busca(&rrn, valor, indice);         // Busca e retorna o número de acessos a páginas de disco
+    if(numAcessos == NIL) {
+        /* Mensagem de falha no processamento */
         printf("Falha no processamento do arquivo.");
+        return;
+    }
+
+    /* Procura o registro no arquivo de dados */
+    rp = registro_em(rrn, bin);
+    if(rp != NULL) {
+        /* Lê o registro encontrado e imprime */
+        imprimir_registro_formatado(rp);                // Imprime o registro
+        liberar_registro(&rp, true);                    // Apaga a struct de registro
+        /* Imprime o número de páginas da árvore-B acessadas */
+        printf("Quantidade de paginas da arvore-B acessadas: %d\n", numAcessos);
+    } else {
+        /* Mensagem de registro não encontrado */
+        printf("Registro inexistente.");
+    }
 }

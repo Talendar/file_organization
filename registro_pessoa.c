@@ -517,7 +517,10 @@ void atualizar_registro(RegistroPessoa *original, RegistroPessoa *alteracoes) {
         strcpy(original->dataNascimento, alteracoes->dataNascimento);
     
     if(alteracoes->sexoBebe != -2)
-        original->sexoBebe = alteracoes->sexoBebe;
+        if(alteracoes->sexoBebe == 0)
+            original->sexoBebe = '0';    
+        else
+            original->sexoBebe = alteracoes->sexoBebe;
     
     if(strncmp(alteracoes->estadoMae, "-2", 3) != 0)
         strcpy(original->estadoMae, alteracoes->estadoMae);

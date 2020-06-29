@@ -192,8 +192,16 @@ bool func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice)
 
     /* Checa se o arquivo existe e está consistente */
     if(cabecalho == NULL || bt_cab == NULL) {
+        if(cabecalho != NULL) {             // Se foi alocado cabeçalho
+            free(cabecalho);                // Apaga o cabeçalho
+            cabecalho = NULL;
+        } else if(bt_cab != NULL) {         // Se foi alocado cabeçalho de índices
+            free(bt_cab);                   // Apaga o cabeçalho de índices
+            bt_cab = NULL;
+        }
         printf("Falha no processamento do arquivo.");   // Mensagem de erro
-        fclose(bin);                                    // Fecha o arquivo
+        fclose(bin);                                    // Fecha o arquivo de dados
+        fclose(indice);                                 // Fecha o arquivo de índices
         return false;
     }
 
@@ -213,7 +221,12 @@ bool func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice)
             escrever_cabecalho(cabecalho, bin);                     // Escreve o cabeçalho
             free(cabecalho);                                        // Apaga o cabeçalho
             cabecalho = NULL;
-            fclose(bin);                                            // Fecha o arquivo
+            if(bt_cab != NULL) {
+                free(bt_cab);                                       // Apaga o cabeçalho do índice
+                bt_cab = NULL;
+            }
+            fclose(bin);                                            // Fecha o arquivo de dados
+            fclose(indice);                                         // Fecha o arquivo de índices
             return false;
         }
 
@@ -244,6 +257,7 @@ bool func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice)
 
     /* Finalizando */
     fclose(bin);  
+    fclose(indice);
     return true;                                          
 }
 
@@ -340,11 +354,15 @@ void func9(FILE *bin, FILE *indice) {
     RegistroCabecalho *cab = ler_cabecalho_bin(bin);    // Guarda o cabeçalho do arquivo de dados
     RegistroPessoa *rp = NULL;                          // Guarda o registro de dados encontrado da busca
 
-    /* Testa a leitura do cabeçalho do arquivo de dados */
+    /* Testa a leitura do cabeçalho do arquivo de dados para checagem de consistência */
     if(cab == NULL) {
         printf("Falha no processamento do arquivo.");
         return;
     }
+
+    /* Apaga a struct de cabeçalho */
+    free(cab);
+    cab = NULL;
 
     /* Lê a entrada do usuário */
     scanf(" %19s", tipoChave);                          // Lê o tipo de chave

@@ -153,6 +153,8 @@ static bool bt_inserir_aux(int rrn, BTItem *item, int *promo_filho_dir, BTItem *
 
     if(pos == NIL) {
         printf("[ERRO] Tentativa de insercao de uma chave duplicada: %d\n.", item->chave);
+        if(p != NULL)
+            free(p);
         return false;
     }
 

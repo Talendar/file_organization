@@ -187,7 +187,7 @@ void scan_quote_string(char *str) {
 		getchar();        // ignorar aspas fechando
 	} else if(R != EOF){  // vc tá tentando ler uma string que não tá entre aspas! Fazer leitura normal %s então, pois deve ser algum inteiro ou algo assim...
 		str[0] = R;
-		scanf("%s", &str[1]);
+		scanf("%[^ \r\n]", &str[1]);             // ATENÇÃO: ESSE CÓDIGO FOI MODIFICADO POIS ELE QUEBRA CASO O NUMERO TENHA 1 CARACTERE
 	} else {            // EOF
 		strcpy(str, "");
 	}

@@ -123,8 +123,8 @@ void func3(FILE *bin)
  */
 void func4(FILE *bin) 
 {
-    int rrn;  scanf(" %d", &rrn);        //lê o rrn do registro a ser buscado
-    RegistroPessoa *rp = registro_em(rrn, bin);
+    int rrn;  scanf(" %d", &rrn);                   //lê o rrn do registro a ser buscado
+    RegistroPessoa *rp = registro_em(rrn, bin);     //busca o registro
 
     if(rp != NULL) {
         imprimir_registro_formatado(rp);
@@ -152,7 +152,7 @@ void func5(char *bin_pathname, FILE *bin)
     }
 
     atualizar_cabecalho(cabecalho, '0', -1, -1, -1, -1);                //marca no cabeçalho que o arquivo está inconsistente
-    int count = qnt_registros_removidos(cabecalho);
+    int count = 0;                                                      //contagem dos registros removidos
 
     for(int i = 0; i < n; i++) {
         RegistroPessoa *wanted = ler_campos();                          //recebe um pseudo-registro com valores dos parâmetros de busca
@@ -162,7 +162,7 @@ void func5(char *bin_pathname, FILE *bin)
     }
 
     atualizar_cabecalho(cabecalho, '1', -1, 
-        qnt_registros_inseridos(cabecalho) - count, count, -1);         //atualiza no cabeçalho os campos "status", "numeroRegistrosInseridos" e "numeroRegistrosRemovidos"
+        qnt_registros_inseridos(cabecalho) - count, qnt_registros_removidos(cabecalho) + count, -1);         //atualiza no cabeçalho os campos "status", "numeroRegistrosInseridos" e "numeroRegistrosRemovidos"
     escrever_cabecalho(cabecalho, bin);                                 //escreve o cabeçalho atualizado no arquivo
 
     free(cabecalho);                                                    //apaga o registro de cabeçalho
@@ -183,15 +183,17 @@ void func5(char *bin_pathname, FILE *bin)
  * @param bin_pathname nome do arquivo binário; necessário para a chamada da função binarioNaTela.
  * @param bin arquivo binário a ser utilizado.
  */
-bool func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice) 
+bool func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice, bool usar_bt) 
 {
     int n;                                                  // Número de execuções da funçionalidade
     RegistroCabecalho *cabecalho = ler_cabecalho_bin(bin);  // Registro de cabeçalho
     RegistroPessoa *rp = NULL;                              // Registro de dados
-    BTCabecalho *bt_cab = bt_ler_cabecalho(indice);         // Registro de cabeçalho do índice
+    BTCabecalho *bt_cab = NULL;                             // Registro de cabeçalho do índice
+    if(usar_bt)
+        bt_cab = bt_ler_cabecalho(indice);
 
     /* Checa se o arquivo existe e está consistente */
-    if(cabecalho == NULL || bt_cab == NULL) {
+    if(cabecalho == NULL || (usar_bt && bt_cab == NULL)) {
         if(cabecalho != NULL) {             // Se foi alocado cabeçalho
             free(cabecalho);                // Apaga o cabeçalho
             cabecalho = NULL;
@@ -201,14 +203,16 @@ bool func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice)
         }
         printf("Falha no processamento do arquivo.");   // Mensagem de erro
         fclose(bin);                                    // Fecha o arquivo de dados
-        fclose(indice);                                 // Fecha o arquivo de índices
+        if(indice != NULL)
+            fclose(indice);                             // Fecha o arquivo de índices
         return false;
     }
 
     /* Atualiza a consistencia do arquivo */
     atualizar_cabecalho(cabecalho, '0', -1, -1, -1, -1);    // Atualiza o status
     escrever_cabecalho(cabecalho, bin);                     // Escreve no arquivo
-    bt_escrever_status('0', indice);
+    if(usar_bt)
+        bt_escrever_status('0', indice);                    // Atualiza o status da árvore-B
 
     /* Executa n vezes a funcionalidade */
     scanf("%d", &n);                                        // Lê o número de execuções
@@ -226,7 +230,8 @@ bool func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice)
                 bt_cab = NULL;
             }
             fclose(bin);                                            // Fecha o arquivo de dados
-            fclose(indice);                                         // Fecha o arquivo de índices
+            if(indice != NULL)
+                fclose(indice);                                     // Fecha o arquivo de índices
             return false;
         }
 
@@ -235,7 +240,8 @@ bool func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice)
         registro2bin(rp, bin);                                              // Insere o registro
 
         /* Indexa o registro no índice árvore-B */
-        bt_inserir(registro_idNascimento(rp), proximo_rrn(cabecalho), bt_cab, indice);
+        if(usar_bt)
+            bt_inserir(registro_idNascimento(rp), proximo_rrn(cabecalho), bt_cab, indice);
 
         /* Atualiza as informações de cabeçalho */
         atualizar_cabecalho(cabecalho, -1, proximo_rrn(cabecalho) + 1, qnt_registros_inseridos(cabecalho) + 1, -1, -1);
@@ -251,13 +257,16 @@ bool func6(char *bin_pathname, FILE *bin, char *indice_pathname, FILE *indice)
     escrever_cabecalho(cabecalho, bin);                     
     free(cabecalho);                                        
 
-    bt_escrever_cabecalho(bt_cab, indice);
-    bt_escrever_status('1', indice);
-    free(bt_cab);
+    if(usar_bt) {
+        bt_escrever_cabecalho(bt_cab, indice);
+        bt_escrever_status('1', indice);
+        free(bt_cab);
+    }
 
     /* Finalizando */
-    fclose(bin);  
-    fclose(indice);
+    fclose(bin);
+    if(indice != NULL)  
+        fclose(indice);
     return true;                                          
 }
 

@@ -54,7 +54,9 @@ int main(void)
             }
             /* Funcionalidades 6, 8, 9 e 10*/
             else if(opt == 6 || opt == 8 || opt == 9 || opt == 10) {
-                char indice_pathname[64];  scanf(" %s", indice_pathname);    // Lê o nome do arquivo de índice
+                char indice_pathname[64];
+                if(opt != 6)
+                    scanf(" %s", indice_pathname);    // Lê o nome do arquivo de índice
                 
                 // funcionalidade 8
                 if(opt == 8) 
@@ -62,10 +64,10 @@ int main(void)
                 // funcionalidades 6, 9 e 10
                 else {
                     FILE *indice = fopen(indice_pathname, "rb+");
-                    if(indice != NULL) {
+                    if(indice != NULL || opt == 6) {
                         // funcionalidade 6 e 10
                         if(opt == 6 || opt == 10) {
-                            if(func6(bin_pathname, bin, indice_pathname, indice)) {
+                            if(func6(bin_pathname, bin, indice_pathname, indice, opt == 10)) {
                                 // binario na tela caso não tenha havido falhas
                                 if(opt == 6)
                                     binarioNaTela(bin_pathname);            // binarioNaTela para o arquivo de dados

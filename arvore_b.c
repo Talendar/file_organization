@@ -58,24 +58,27 @@ struct BTPagina {
  */
 bool bt_criar(FILE *dados, char *bt_pathname) 
 {
+    /* Quantidade de registros a serem lidos do arquivo de dados */
+    RegistroCabecalho *dados_cab = ler_cabecalho_bin(dados);        // Cabeçalho do registro de dados
+    if(dados_cab == NULL)
+        return false;
+    int regs_inseridos = qnt_registros_inseridos(dados_cab), regs_removidos = qnt_registros_removidos(dados_cab); // Dados do cabeçalho
+    free(dados_cab); dados_cab = NULL;
+
     /* Criando arquivo de índice */
-    FILE *bt = fopen(bt_pathname, "wb+");
+    FILE *bt = fopen(bt_pathname, "wb+");                           // Arquivo de índice
     if(bt == NULL)
         return false;
 
-    BTCabecalho cab = { .status = '0', .noRaiz = NIL, .nroNiveis = 0, .proxRRN = 0, .nroChaves = 0 };
+    BTCabecalho cab = { .status = '0', .noRaiz = NIL, .nroNiveis = 0, .proxRRN = 0, .nroChaves = 0 };   // Cabeçalho do arquivo de índice
     bt_escrever_cabecalho(&cab, bt);
 
-    /* Quantidade de registros a serem lidos do arquivo de dados */
-    RegistroCabecalho *dados_cab = ler_cabecalho_bin(dados);
-    int regs_inseridos = qnt_registros_inseridos(dados_cab), regs_removidos = qnt_registros_removidos(dados_cab); 
-    free(dados_cab); dados_cab = NULL;
 
     /* Inserções na árvore-B */
     if((regs_inseridos - regs_removidos) > 0) 
     {
         for(int i = 0; i < regs_inseridos; i++) {
-            RegistroPessoa *rp = ler_registro_bin(dados);
+            RegistroPessoa *rp = ler_registro_bin(dados);               // Lê o registro a ser inserido
             
             if(rp != NULL) {
                 bt_inserir(registro_idNascimento(rp), i, &cab, bt);
